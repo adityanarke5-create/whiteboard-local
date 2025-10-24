@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AuthService } from '@/lib/auth-service';
+import { useAuth } from '@/context/auth-context';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -12,27 +12,24 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [configError, setConfigError] = useState('');
   const router = useRouter();
+  const { isAuthenticated, signIn } = useAuth();
 
-  // Check if user is already authenticated
+  // Redirect to dashboard if already authenticated
   useEffect(() => {
-    // Check if Amplify is properly configured
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
+  // Check if Amplify is properly configured
+  useEffect(() => {
     if (!process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || 
         !process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || 
         !process.env.NEXT_PUBLIC_COGNITO_DOMAIN || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       setConfigError('AWS Cognito is not properly configured. Please check your environment variables.');
     }
-    
-    const checkAuth = async () => {
-      const isAuthenticated = await AuthService.isAuthenticated();
-      
-      if (isAuthenticated) {
-        router.push('/dashboard');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,13 +44,13 @@ export default function SignIn() {
     setError('');
 
     try {
-      const result = await AuthService.signIn(email, password);
+      const result = await signIn(email, password);
       
-      if ('error' in result) {
-        setError(result.error);
+      if (!result.success) {
+        setError(result.error || 'Failed to sign in. Please check your credentials.');
       } else {
-        // Redirect to dashboard on success
-        router.push('/dashboard');
+        // Redirect to dashboard on success - handled by useEffect above
+        console.log('Sign in successful, redirecting to dashboard');
       }
     } catch (err) {
       setError('Failed to sign in. Please check your credentials.');
@@ -61,6 +58,15 @@ export default function SignIn() {
       setLoading(false);
     }
   };
+
+  // Don't render the sign-in form if already authenticated
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <>

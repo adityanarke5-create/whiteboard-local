@@ -34,6 +34,7 @@ export default function Dashboard() {
           }
         });
         const data = await response.json();
+        console.log(data);
         setBoards(data);
       } catch (error) {
         console.error('Failed to fetch boards:', error);
