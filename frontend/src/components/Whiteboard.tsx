@@ -304,7 +304,14 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       canvas.isDrawingMode = true;
       // Set up eraser brush
       if (!canvas.freeDrawingBrush || !(canvas.freeDrawingBrush instanceof window.fabric.EraserBrush)) {
-        canvas.freeDrawingBrush = new window.fabric.EraserBrush(canvas);
+        // Ensure EraserBrush is available
+        if (window.fabric.EraserBrush) {
+          canvas.freeDrawingBrush = new window.fabric.EraserBrush(canvas);
+        } else {
+          // Fallback: use regular pencil brush with white color
+          canvas.freeDrawingBrush = new window.fabric.PencilBrush(canvas);
+          canvas.freeDrawingBrush.color = '#f8fafc'; // Background color
+        }
       }
       canvas.freeDrawingBrush.width = strokeWidth;
     } else {
