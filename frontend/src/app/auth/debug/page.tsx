@@ -1,149 +1,131 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
 import { AuthService } from '@/lib/auth-service';
+import { useAuth } from '@/context/auth-context';
 
-export default function AuthDebugPage() {
-  const { exportLogs } = useAuth();
-  const [logs, setLogs] = useState<any[]>([]);
-  const [envConfig, setEnvConfig] = useState<any>({});
+export default function AuthDebug() {
+  const { user, isAuthenticated, loading, refreshUser, exportLogs } = useAuth();
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [logs, setLogs] = useState<string>('');
+  const router = useRouter();
 
   useEffect(() => {
-    // Get environment configuration
-    setEnvConfig({
-      region: process.env.NEXT_PUBLIC_AWS_REGION,
-      userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
-      clientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
-      domain: process.env.NEXT_PUBLIC_COGNITO_DOMAIN,
-    });
+    const fetchDebugInfo = async () => {
+      try {
+        const token = await AuthService.getCurrentToken();
+        const authStatus = await AuthService.isAuthenticated();
+        
+        setDebugInfo({
+          isAuthenticated: authStatus,
+          user,
+          hasToken: !!token,
+          tokenPreview: token ? `${token.substring(0, 20)}...` : 'No token',
+        });
+      } catch (error) {
+        console.error('Debug error:', error);
+      }
+    };
 
-    // Get logs
-    try {
-      const logsData = exportLogs();
-      setLogs(JSON.parse(logsData));
-    } catch (error) {
-      console.error('Error parsing logs:', error);
+    if (!loading) {
+      fetchDebugInfo();
     }
-  }, [exportLogs]);
+  }, [user, isAuthenticated, loading]);
+
+  const handleRefresh = async () => {
+    await refreshUser();
+  };
 
   const handleExportLogs = () => {
-    const logsData = exportLogs();
-    const blob = new Blob([logsData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'auth-logs.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const exportedLogs = exportLogs();
+    setLogs(exportedLogs);
   };
 
-  const handleClearLogs = () => {
-    // In a real implementation, you would clear the logs
-    // For now, we'll just refresh the display
+  const handleSignOut = async () => {
     try {
-      const logsData = exportLogs();
-      setLogs(JSON.parse(logsData));
+      await AuthService.signOut();
+      router.push('/auth/signin');
     } catch (error) {
-      console.error('Error parsing logs:', error);
+      console.error('Sign out error:', error);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Authentication Debug</h1>
-        
-        {/* Environment Configuration */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Environment Configuration</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Region</label>
-              <div className="mt-1 p-2 bg-gray-50 rounded-md">
-                {envConfig.region || 'Not set'}
-              </div>
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Authentication Debug</h1>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">Authentication Status</h2>
+              <p className="text-gray-600">Authenticated: <span className={isAuthenticated ? 'text-green-600' : 'text-red-600'}>{isAuthenticated ? 'Yes' : 'No'}</span></p>
+              <p className="text-gray-600">Loading: <span className={loading ? 'text-yellow-600' : 'text-green-600'}>{loading ? 'Yes' : 'No'}</span></p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">User Pool ID</label>
-              <div className="mt-1 p-2 bg-gray-50 rounded-md">
-                {envConfig.userPoolId ? `${envConfig.userPoolId.substring(0, 15)}...` : 'Not set'}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Client ID</label>
-              <div className="mt-1 p-2 bg-gray-50 rounded-md">
-                {envConfig.clientId ? `${envConfig.clientId.substring(0, 15)}...` : 'Not set'}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Domain</label>
-              <div className="mt-1 p-2 bg-gray-50 rounded-md">
-                {envConfig.domain || 'Not set'}
-              </div>
+            
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">User Information</h2>
+              {user ? (
+                <>
+                  <p className="text-gray-600">Name: {user.name}</p>
+                  <p className="text-gray-600">Email: {user.email}</p>
+                  <p className="text-gray-600">ID: {user.id}</p>
+                </>
+              ) : (
+                <p className="text-gray-600">No user data available</p>
+              )}
             </div>
           </div>
-        </div>
-        
-        {/* Debug Actions */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Debug Actions</h2>
-          <div className="flex space-x-4">
+          
+          {debugInfo && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">Debug Information</h2>
+              <p className="text-gray-600">Has Token: <span className={debugInfo.hasToken ? 'text-green-600' : 'text-red-600'}>{debugInfo.hasToken ? 'Yes' : 'No'}</span></p>
+              <p className="text-gray-600">Token Preview: {debugInfo.tokenPreview}</p>
+            </div>
+          )}
+          
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Refresh User
+            </button>
+            
             <button
               onClick={handleExportLogs}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
             >
               Export Logs
             </button>
+            
             <button
-              onClick={handleClearLogs}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              onClick={handleSignOut}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
-              Refresh Logs
+              Sign Out
             </button>
           </div>
         </div>
         
-        {/* Authentication Logs */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Authentication Logs</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Timestamp
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Event
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Details
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {logs.map((log, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {log.timestamp}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {log.event}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <pre className="whitespace-pre-wrap overflow-x-auto max-w-md">
-                        {JSON.stringify(log.data || log.error, null, 2)}
-                      </pre>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {logs && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">Authentication Logs</h2>
+            <pre className="bg-gray-800 text-gray-100 p-4 rounded-lg overflow-auto max-h-96 text-sm">
+              {logs}
+            </pre>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

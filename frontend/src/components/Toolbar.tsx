@@ -8,8 +8,10 @@ import {
   FaRegCircle, 
   FaSlash, 
   FaFont, 
-  FaPencilAlt, 
   FaEraser,
+  FaSearchPlus,
+  FaSearchMinus,
+  FaExpand,
   FaDownload,
   FaTrash
 } from 'react-icons/fa';
@@ -23,6 +25,10 @@ interface ToolbarProps {
   onStrokeWidthChange: (width: number) => void;
   onExport: (format: string) => void;
   onClear: () => void;
+  // Add new props for pan and zoom
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetZoom?: () => void;
 }
 
 export default function Toolbar({
@@ -34,7 +40,12 @@ export default function Toolbar({
   onStrokeWidthChange,
   onExport,
   onClear,
+  // Add new props for pan and zoom
+  onZoomIn,
+  onZoomOut,
+  onResetZoom,
 }: ToolbarProps) {
+  // Remove 'pen' tool from the tools array
   const tools = [
     { id: 'select', icon: <FaMousePointer className="w-4 h-4" />, label: 'Select', category: 'selection' },
     { id: 'pan', icon: <FaHandPaper className="w-4 h-4" />, label: 'Pan', category: 'selection' },
@@ -42,8 +53,7 @@ export default function Toolbar({
     { id: 'circle', icon: <FaRegCircle className="w-4 h-4" />, label: 'Circle', category: 'shapes' },
     { id: 'line', icon: <FaSlash className="w-4 h-4" />, label: 'Line', category: 'shapes' },
     { id: 'text', icon: <FaFont className="w-4 h-4" />, label: 'Text', category: 'shapes' },
-    { id: 'pen', icon: <FaPencilAlt className="w-4 h-4" />, label: 'Pen', category: 'drawing' },
-    { id: 'eraser', icon: <FaEraser className="w-4 h-4" />, label: 'Eraser', category: 'drawing' },
+    { id: 'eraser', icon: <FaEraser className="w-4 h-4" />, label: 'Eraser', category: 'tools' }, // Moved eraser to its own category
   ];
 
   const exportOptions = [
@@ -63,27 +73,22 @@ export default function Toolbar({
   }, {} as Record<string, typeof tools>);
 
   const handleToolChange = (toolId: string) => {
-    console.log('[Toolbar] Tool selected:', { toolId, previousTool: activeTool });
     onToolChange(toolId);
   };
 
   const handleColorChange = (color: string) => {
-    console.log('[Toolbar] Color changed:', { color, previousColor: strokeColor });
     onColorChange(color);
   };
 
   const handleStrokeWidthChange = (width: number) => {
-    console.log('[Toolbar] Stroke width changed:', { width, previousWidth: strokeWidth });
     onStrokeWidthChange(width);
   };
 
   const handleExport = (format: string) => {
-    console.log('[Toolbar] Export initiated:', { format });
     onExport(format);
   };
 
   const handleClear = () => {
-    console.log('[Toolbar] Clear canvas initiated');
     onClear();
   };
 
@@ -146,6 +151,33 @@ export default function Toolbar({
             />
             <span className="text-sm text-gray-700 ml-3 w-8 font-medium">{strokeWidth}</span>
           </div>
+        </div>
+      </div>
+      
+      {/* Pan and Zoom Controls */}
+      <div className="flex items-center space-x-2">
+        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+          <button
+            onClick={onZoomIn}
+            className="p-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center text-gray-700 hover:bg-gray-200"
+            title="Zoom In (Ctrl +)"
+          >
+            <FaSearchPlus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onZoomOut}
+            className="p-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center text-gray-700 hover:bg-gray-200"
+            title="Zoom Out (Ctrl -)"
+          >
+            <FaSearchMinus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onResetZoom}
+            className="p-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center text-gray-700 hover:bg-gray-200"
+            title="Reset Zoom (Ctrl + 0)"
+          >
+            <FaExpand className="w-4 h-4" />
+          </button>
         </div>
       </div>
       

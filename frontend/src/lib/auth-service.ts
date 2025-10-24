@@ -6,7 +6,8 @@ import {
   signOut, 
   getCurrentUser,
   fetchUserAttributes,
-  fetchAuthSession
+  fetchAuthSession,
+  resendSignUpCode
 } from 'aws-amplify/auth';
 import { configureAmplify } from './amplify-config';
 import { authLogger } from './auth-logger';
@@ -52,7 +53,19 @@ export class AuthService {
         },
       });
       
-      authLogger.logAuthFlow('Sign Up Success', { userId: result.userId });
+      authLogger.logAuthFlow('Sign Up Success', { 
+        userId: result.userId,
+        nextStep: result.nextStep
+      });
+      
+      // Check if confirmation is required
+      if (result.nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+        authLogger.logAuthFlow('Confirmation Required', { 
+          email,
+          signUpStep: result.nextStep.signUpStep
+        });
+      }
+      
       return { user: result };
     } catch (error: any) {
       authLogger.error('Sign Up Error', error);
@@ -79,6 +92,20 @@ export class AuthService {
     } catch (error: any) {
       authLogger.error('Confirm Sign Up Error', error);
       return { error: error.message || 'Failed to confirm sign up' };
+    }
+  }
+
+  // Resend confirmation code
+  static async resendConfirmationCode(email: string): Promise<{ success: boolean } | { error: string }> {
+    authLogger.logAuthFlow('Resend Confirmation Code Attempt', { email });
+    
+    try {
+      await resendSignUpCode({ username: email });
+      authLogger.logAuthFlow('Resend Confirmation Code Success', { email });
+      return { success: true };
+    } catch (error: any) {
+      authLogger.error('Resend Confirmation Code Error', error);
+      return { error: error.message || 'Failed to resend confirmation code' };
     }
   }
 

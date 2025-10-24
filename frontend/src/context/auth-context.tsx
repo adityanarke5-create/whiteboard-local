@@ -1,8 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { AuthService, User } from '@/lib/auth-service';
 import { authLogger } from '@/lib/auth-logger';
+
+// Extend Window interface
+declare global {
+  interface Window {
+    authHookLogged?: boolean;
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -21,13 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Log environment configuration on mount
+  // Log environment configuration on mount - run only once
   useEffect(() => {
     authLogger.log('AuthContext', 'Initializing authentication context');
     AuthService.logEnvironmentConfig();
   }, []);
 
-  // Check authentication status on mount
+  // Check authentication status on mount - run only once
   useEffect(() => {
     authLogger.log('AuthContext', 'Checking initial authentication status');
     
@@ -53,7 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  // Memoize signIn function to prevent unnecessary re-renders
+  const signIn = useCallback(async (email: string, password: string) => {
     authLogger.log('AuthContext', 'Signing in user: ' + email);
     
     try {
@@ -73,9 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authLogger.error('AuthContext Sign In Error', error);
       return { success: false, error: error.message || 'Sign in failed' };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  // Memoize signOut function to prevent unnecessary re-renders
+  const signOut = useCallback(async () => {
     authLogger.log('AuthContext', 'Signing out user');
     
     try {
@@ -86,9 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       authLogger.error('AuthContext Sign Out Error', error);
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  // Memoize refreshUser function to prevent unnecessary re-renders
+  const refreshUser = useCallback(async () => {
     authLogger.log('AuthContext', 'Refreshing user information');
     
     try {
@@ -99,11 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       authLogger.error('AuthContext Refresh User Error', error);
     }
-  };
+  }, []);
   
-  const exportLogs = (): string => {
+  const exportLogs = useCallback((): string => {
     return AuthService.exportLogs();
-  };
+  }, []);
 
   const value = {
     user,
@@ -115,8 +125,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     exportLogs
   };
 
-  authLogger.log('AuthContext', 'Providing authentication context: ' + 
-    `isAuthenticated=${isAuthenticated}, user=${user ? user.email : 'null'}, loading=${loading}`);
+  // Reduce logging frequency - only log when critical state changes
+  useEffect(() => {
+    if (!loading) {
+      authLogger.log('AuthContext', 'State updated: ' + 
+        `isAuthenticated=${isAuthenticated}, user=${user ? user.email : 'null'}`);
+    }
+  }, [isAuthenticated, user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -127,8 +142,14 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   
-  authLogger.log('useAuth', 'Accessing authentication context: ' + 
-    `isAuthenticated=${context.isAuthenticated}, user=${context.user ? context.user.email : 'null'}, loading=${context.loading}`);
-  
+  // Reduce logging frequency in useAuth hook
+  // Only log when in development mode and only once per session
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && !window.authHookLogged) {
+      authLogger.log('useAuth', 'Accessing authentication context');
+      window.authHookLogged = true;
+    }
+  }, []);
+
   return context;
 }

@@ -12,32 +12,25 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [confirmationCode, setConfirmationCode] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [configError, setConfigError] = useState('');
   const router = useRouter();
 
-  console.log('[SignUpPage] Rendering sign up page', { showConfirmation });
-
   // Check if user is already authenticated
   useEffect(() => {
-    console.log('[SignUpPage] Checking if user is already authenticated');
-    
     // Check if Amplify is properly configured
     if (!process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || 
         !process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || 
         !process.env.NEXT_PUBLIC_COGNITO_DOMAIN || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       setConfigError('AWS Cognito is not properly configured. Please check your environment variables.');
-      console.warn('[SignUpPage] AWS Cognito configuration is incomplete');
     }
     
     const checkAuth = async () => {
       const isAuthenticated = await AuthService.isAuthenticated();
-      console.log('[SignUpPage] Authentication check result:', isAuthenticated);
-      
       if (isAuthenticated) {
-        console.log('[SignUpPage] User is already authenticated, redirecting to dashboard');
         router.push('/dashboard');
       }
     };
@@ -47,7 +40,6 @@ export default function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[SignUpPage] Submitting sign up form', { name, email });
     
     // Don't proceed if there's a config error
     if (configError) {
@@ -57,10 +49,10 @@ export default function SignUp() {
     
     setLoading(true);
     setError('');
+    setSuccess('');
 
     // Basic validation
     if (password !== confirmPassword) {
-      console.warn('[SignUpPage] Passwords do not match');
       setError('Passwords do not match');
       setLoading(false);
       return;
@@ -68,18 +60,15 @@ export default function SignUp() {
 
     try {
       const result = await AuthService.signUp(name, email, password);
-      console.log('[SignUpPage] Sign up attempt result:', result);
       
       if ('error' in result) {
-        console.error('[SignUpPage] Sign up failed with error:', result.error);
         setError(result.error);
       } else {
-        console.log('[SignUpPage] Sign up successful, showing confirmation form');
         // Show confirmation code input
         setShowConfirmation(true);
+        setSuccess('Account created successfully! Please check your email for the confirmation code.');
       }
     } catch (err) {
-      console.error('[SignUpPage] Unexpected error during sign up:', err);
       setError('Failed to create account. Please try again.');
     } finally {
       setLoading(false);
@@ -88,7 +77,6 @@ export default function SignUp() {
 
   const handleConfirmSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[SignUpPage] Submitting confirmation code', { email, confirmationCode });
     
     // Don't proceed if there's a config error
     if (configError) {
@@ -98,30 +86,48 @@ export default function SignUp() {
     
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       const result = await AuthService.confirmSignUp(email, confirmationCode);
-      console.log('[SignUpPage] Confirmation attempt result:', result);
       
       if ('error' in result) {
-        console.error('[SignUpPage] Confirmation failed with error:', result.error);
         setError(result.error);
       } else {
-        console.log('[SignUpPage] Confirmation successful, redirecting to dashboard');
-        // Redirect to dashboard on success
-        router.push('/dashboard');
+        setSuccess('Account confirmed successfully! Redirecting to dashboard...');
+        // Redirect to dashboard on success after a short delay
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
       }
     } catch (err) {
-      console.error('[SignUpPage] Unexpected error during confirmation:', err);
       setError('Failed to confirm account. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResendCode = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await AuthService.resendConfirmationCode(email);
+      
+      if ('error' in result) {
+        setError(result.error);
+      } else {
+        setSuccess('Confirmation code resent successfully! Please check your email.');
+      }
+    } catch (err) {
+      setError('Failed to resend confirmation code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (showConfirmation) {
-    console.log('[SignUpPage] Rendering confirmation form');
-    
     return (
       <>
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -143,15 +149,23 @@ export default function SignUp() {
               </div>
             )}
             
-            <form className="space-y-6" onSubmit={handleConfirmSignUp}>
-              {error && (
-                <div className="rounded-md bg-red-50 p-4">
-                  <div className="text-sm text-red-700">
-                    {error}
-                  </div>
+            {success && (
+              <div className="rounded-md bg-green-50 p-4 mb-4">
+                <div className="text-sm text-green-700">
+                  {success}
                 </div>
-              )}
-              
+              </div>
+            )}
+            
+            {error && (
+              <div className="rounded-md bg-red-50 p-4 mb-4">
+                <div className="text-sm text-red-700">
+                  {error}
+                </div>
+              </div>
+            )}
+            
+            <form className="space-y-6" onSubmit={handleConfirmSignUp}>
               <div>
                 <label htmlFor="confirmation-code" className="block text-sm font-medium text-gray-700">
                   Confirmation Code
@@ -164,10 +178,7 @@ export default function SignUp() {
                     required
                     disabled={!!configError}
                     value={confirmationCode}
-                    onChange={(e) => {
-                      console.log('[SignUpPage] Confirmation code input changed', { value: e.target.value });
-                      setConfirmationCode(e.target.value);
-                    }}
+                    onChange={(e) => setConfirmationCode(e.target.value)}
                     className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${configError ? 'bg-gray-100' : ''}`}
                   />
                 </div>
@@ -182,22 +193,23 @@ export default function SignUp() {
                   {loading ? 'Confirming...' : 'Confirm Account'}
                 </button>
               </div>
+              
+              <div className="text-sm text-center">
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={loading}
+                  className="font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+                >
+                  {loading ? 'Resending code...' : 'Resend confirmation code'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       </>
     );
   }
-
-  console.log('[SignUpPage] Rendering sign up form with state', { 
-    name, 
-    email, 
-    password, 
-    confirmPassword, 
-    error, 
-    loading,
-    configError
-  });
 
   return (
     <>
@@ -232,6 +244,14 @@ export default function SignUp() {
             </div>
           )}
           
+          {success && (
+            <div className="rounded-md bg-green-50 p-4 mb-4">
+              <div className="text-sm text-green-700">
+                {success}
+              </div>
+            </div>
+          )}
+          
           <form className="space-y-6" onSubmit={handleSignUp}>
             {error && (
               <div className="rounded-md bg-red-50 p-4">
@@ -253,10 +273,7 @@ export default function SignUp() {
                   required
                   disabled={!!configError}
                   value={name}
-                  onChange={(e) => {
-                    console.log('[SignUpPage] Name input changed', { value: e.target.value });
-                    setName(e.target.value);
-                  }}
+                  onChange={(e) => setName(e.target.value)}
                   className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${configError ? 'bg-gray-100' : ''}`}
                 />
               </div>
@@ -275,10 +292,7 @@ export default function SignUp() {
                   required
                   disabled={!!configError}
                   value={email}
-                  onChange={(e) => {
-                    console.log('[SignUpPage] Email input changed', { value: e.target.value });
-                    setEmail(e.target.value);
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
                   className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${configError ? 'bg-gray-100' : ''}`}
                 />
               </div>
@@ -296,10 +310,7 @@ export default function SignUp() {
                   required
                   disabled={!!configError}
                   value={password}
-                  onChange={(e) => {
-                    console.log('[SignUpPage] Password input changed', { value: e.target.value });
-                    setPassword(e.target.value);
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${configError ? 'bg-gray-100' : ''}`}
                 />
               </div>
@@ -317,10 +328,7 @@ export default function SignUp() {
                   required
                   disabled={!!configError}
                   value={confirmPassword}
-                  onChange={(e) => {
-                    console.log('[SignUpPage] Confirm password input changed', { value: e.target.value });
-                    setConfirmPassword(e.target.value);
-                  }}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${configError ? 'bg-gray-100' : ''}`}
                 />
               </div>

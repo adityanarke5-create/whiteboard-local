@@ -13,27 +13,20 @@ export default function SignIn() {
   const [configError, setConfigError] = useState('');
   const router = useRouter();
 
-  console.log('[SignInPage] Rendering sign in page');
-
   // Check if user is already authenticated
   useEffect(() => {
-    console.log('[SignInPage] Checking if user is already authenticated');
-    
     // Check if Amplify is properly configured
     if (!process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || 
         !process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || 
         !process.env.NEXT_PUBLIC_COGNITO_DOMAIN || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       setConfigError('AWS Cognito is not properly configured. Please check your environment variables.');
-      console.warn('[SignInPage] AWS Cognito configuration is incomplete');
     }
     
     const checkAuth = async () => {
       const isAuthenticated = await AuthService.isAuthenticated();
-      console.log('[SignInPage] Authentication check result:', isAuthenticated);
       
       if (isAuthenticated) {
-        console.log('[SignInPage] User is already authenticated, redirecting to dashboard');
         router.push('/dashboard');
       }
     };
@@ -43,7 +36,6 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[SignInPage] Submitting sign in form', { email });
     
     // Don't proceed if there's a config error
     if (configError) {
@@ -56,31 +48,19 @@ export default function SignIn() {
 
     try {
       const result = await AuthService.signIn(email, password);
-      console.log('[SignInPage] Sign in attempt result:', result);
       
       if ('error' in result) {
-        console.error('[SignInPage] Sign in failed with error:', result.error);
         setError(result.error);
       } else {
-        console.log('[SignInPage] Sign in successful, redirecting to dashboard');
         // Redirect to dashboard on success
         router.push('/dashboard');
       }
     } catch (err) {
-      console.error('[SignInPage] Unexpected error during sign in:', err);
       setError('Failed to sign in. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
-
-  console.log('[SignInPage] Rendering form with state', { 
-    email, 
-    password, 
-    error, 
-    loading,
-    configError
-  });
 
   return (
     <>
@@ -137,10 +117,7 @@ export default function SignIn() {
                   required
                   disabled={!!configError}
                   value={email}
-                  onChange={(e) => {
-                    console.log('[SignInPage] Email input changed', { value: e.target.value });
-                    setEmail(e.target.value);
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
                   className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${configError ? 'bg-gray-100' : ''}`}
                 />
               </div>
@@ -159,10 +136,7 @@ export default function SignIn() {
                   required
                   disabled={!!configError}
                   value={password}
-                  onChange={(e) => {
-                    console.log('[SignInPage] Password input changed', { value: e.target.value });
-                    setPassword(e.target.value);
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${configError ? 'bg-gray-100' : ''}`}
                 />
               </div>

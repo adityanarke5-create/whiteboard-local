@@ -2,7 +2,8 @@
 export class AuthLogger {
   private static instance: AuthLogger;
   private logs: any[] = [];
-  private maxLogs = 100;
+  private maxLogs = 50; // Reduce log storage to improve performance
+  private isDevelopment = process.env.NODE_ENV === 'development';
 
   private constructor() {}
 
@@ -13,7 +14,14 @@ export class AuthLogger {
     return AuthLogger.instance;
   }
 
+  // Only log in development mode to reduce production overhead
   log(event: string, data?: any) {
+    // In production, only log critical events
+    if (!this.isDevelopment) {
+      // Skip verbose logging in production
+      return;
+    }
+
     const logEntry = {
       timestamp: new Date().toISOString(),
       event,
@@ -28,7 +36,7 @@ export class AuthLogger {
       this.logs.shift();
     }
 
-    // Also log to console
+    // Also log to console in development
     console.log(`[AuthLogger] ${event}`, data);
   }
 
@@ -70,6 +78,10 @@ export class AuthLogger {
 
   // Log environment configuration
   logEnvironmentConfig() {
+    if (!this.isDevelopment) {
+      return; // Skip in production
+    }
+    
     this.log('Environment Configuration', {
       region: process.env.NEXT_PUBLIC_AWS_REGION,
       userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID ? 
@@ -84,16 +96,28 @@ export class AuthLogger {
 
   // Log authentication flow events
   logAuthFlow(step: string, details?: any) {
+    if (!this.isDevelopment) {
+      return; // Skip in production
+    }
+    
     this.log(`Auth Flow - ${step}`, details);
   }
 
   // Log token events
   logTokenEvent(event: string, tokenInfo?: any) {
+    if (!this.isDevelopment) {
+      return; // Skip in production
+    }
+    
     this.log(`Token Event - ${event}`, tokenInfo);
   }
 
   // Log user events
   logUserEvent(event: string, userInfo?: any) {
+    if (!this.isDevelopment) {
+      return; // Skip in production
+    }
+    
     this.log(`User Event - ${event}`, userInfo);
   }
 }

@@ -233,6 +233,9 @@ export class DatabaseService {
     try {
       const collaborators = await db.boardCollaborator.findMany({
         where: { boardId },
+        include: {
+          user: true, // Include user information
+        },
       });
       
       console.log('[DatabaseService] Collaborators retrieved', { count: collaborators.length });
