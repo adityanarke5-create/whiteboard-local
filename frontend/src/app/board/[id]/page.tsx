@@ -386,6 +386,20 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             strokeWidth={strokeWidth}
           />
         </main>
+        
+        {/* Sharing Modal */}
+        <SharingModal
+          boardId={boardId || ''}
+          isOpen={isSharingModalOpen}
+          onClose={() => {
+            console.log('[BoardPage] Closing sharing modal');
+            setIsSharingModalOpen(false);
+          }}
+          onCollaboratorsChange={() => {
+            // Refresh board data or update collaborators list if needed
+            console.log('Collaborators changed');
+          }}
+        />
       </div>
     </ProtectedRoute>
   );

@@ -128,6 +128,11 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       name: user.name
     };
 
+    console.log('[AuthMiddleware] User attached to request', {
+      userId: (req as any).user.id,
+      userEmail: (req as any).user.email
+    });
+
     // Continue to the next middleware or route handler
     console.log('[AuthMiddleware] Authentication successful, proceeding to next handler');
     next();

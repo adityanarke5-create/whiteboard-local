@@ -33,4 +33,22 @@ const port = process.env.PORT || 3001;
 server.listen(port, () => {
   console.log(`> Backend ready on http://localhost:${port}`);
   console.log(`> WebSocket server ready`);
+  
+  // Debug: Log all registered routes
+  console.log('[DEBUG] Registered routes:');
+  const printRoutes = (router: any, prefix = '') => {
+    router.stack.forEach((r: any) => {
+      if (r.route && r.route.path) {
+        console.log(`  ${Object.keys(r.route.methods).join(', ').toUpperCase()} ${prefix}${r.route.path}`);
+      } else if (r.name === 'router') {
+        const newPrefix = prefix + (r.regexp.source.replace('^\\', '').replace('\\?(?=\\/|$)', '').replace(/\//g, '/'));
+        console.log(`  Router middleware mounted at: ${prefix}${r.regexp.source}`);
+        if (r.handle && r.handle.stack) {
+          printRoutes(r.handle, prefix + r.regexp.source.replace('^\\', '').replace('\\?(?=\\/|$)', '').replace(/\//g, '/').replace(/\(.*\)/g, ':id'));
+        }
+      }
+    });
+  };
+  
+  printRoutes(app._router);
 });

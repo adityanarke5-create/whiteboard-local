@@ -9,7 +9,7 @@ export async function GET(
     const resolvedParams = await params;
     
     // Make request to backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/boards/${resolvedParams.id}/snapshots`, {
       method: 'GET',
       headers: {
@@ -56,7 +56,7 @@ export async function POST(
     }
 
     // Make request to backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/boards/${resolvedParams.id}/snapshots`, {
       method: 'POST',
       headers: {

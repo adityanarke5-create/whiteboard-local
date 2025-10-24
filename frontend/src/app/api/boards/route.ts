@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     }
 
     // Make request to backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/boards`, {
       method: 'GET',
       headers: {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     }
 
     // Make request to backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/boards`, {
       method: 'POST',
       headers: {

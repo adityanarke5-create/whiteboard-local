@@ -23,6 +23,9 @@ interface SharingModalProps {
 const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export default function SharingModal({ boardId, isOpen, onClose, onCollaboratorsChange }: SharingModalProps) {
+  console.log('[SharingModal] Component rendered with props:', { boardId, isOpen });
+  console.log('[SharingModal] BACKEND_API_BASE_URL:', BACKEND_API_BASE_URL);
+  
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('editor');
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -32,6 +35,7 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
 
   // Fetch collaborators when modal opens
   useEffect(() => {
+    console.log('[SharingModal] useEffect triggered', { isOpen, boardId });
     if (isOpen) {
       fetchCollaborators();
     }
@@ -39,39 +43,85 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
 
   const fetchCollaborators = async () => {
     try {
+      console.log('[SharingModal] Fetching collaborators for board:', boardId);
       const token = await AuthService.getCurrentToken();
-      if (!token) return;
+      console.log('[SharingModal] Current token available:', !!token);
+      
+      if (!token) {
+        console.warn('[SharingModal] No authentication token available');
+        return;
+      }
 
-      const response = await fetch(`${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators`, {
+      const url = `${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators`;
+      console.log('[SharingModal] Making request to:', url);
+      console.log('[SharingModal] Request headers:', {
+        'Authorization': `Bearer ${token.substring(0, 20)}...`
+      });
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
+      console.log('[SharingModal] Collaborators response status:', response.status);
+      console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('[SharingModal] Collaborators retrieved:', data);
         setCollaborators(data);
+      } else {
+        const errorText = await response.text();
+        console.error('[SharingModal] Failed to fetch collaborators:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        setError(`Failed to fetch collaborators: ${response.statusText} - ${errorText}`);
       }
     } catch (err) {
-      console.error('Failed to fetch collaborators:', err);
+      console.error('[SharingModal] Failed to fetch collaborators:', err);
+      setError('Failed to fetch collaborators');
     }
   };
 
   const handleAddCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[SharingModal] handleAddCollaborator called', { boardId, email, role });
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
+      console.log('[SharingModal] Adding collaborator:', { email, role, boardId });
       const token = await AuthService.getCurrentToken();
+      console.log('[SharingModal] Current token available:', !!token);
+      
       if (!token) {
         setError('Authentication required');
         setLoading(false);
         return;
       }
 
-      const response = await fetch(`${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators`, {
+      // Additional debugging
+      console.log('[SharingModal] Board ID type and value:', typeof boardId, boardId);
+      if (!boardId) {
+        console.error('[SharingModal] Board ID is missing!');
+        setError('Board ID is missing');
+        setLoading(false);
+        return;
+      }
+
+      const url = `${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators`;
+      console.log('[SharingModal] Making POST request to:', url);
+      console.log('[SharingModal] Request body:', { email, role });
+      console.log('[SharingModal] Request headers:', {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token.substring(0, 20)}...`
+      });
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,16 +130,25 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         body: JSON.stringify({ email, role })
       });
 
+      console.log('[SharingModal] Add collaborator response status:', response.status);
+      console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
+      
       if (response.ok) {
         setSuccess('Collaborator added successfully');
         setEmail('');
         await fetchCollaborators();
         onCollaboratorsChange();
       } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to add collaborator');
+        const errorText = await response.text();
+        console.error('[SharingModal] Failed to add collaborator:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        setError(`Failed to add collaborator: ${response.statusText} - ${errorText}`);
       }
     } catch (err) {
+      console.error('[SharingModal] Failed to add collaborator:', err);
       setError('Failed to add collaborator');
     } finally {
       setLoading(false);
@@ -102,30 +161,47 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
     setSuccess('');
 
     try {
+      console.log('[SharingModal] Removing collaborator:', { collaboratorId, boardId });
       const token = await AuthService.getCurrentToken();
+      console.log('[SharingModal] Current token available:', !!token);
+      
       if (!token) {
         setError('Authentication required');
         setLoading(false);
         return;
       }
 
-      // Use DELETE method with URL parameter for the collaborator ID
-      const response = await fetch(`${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators/${collaboratorId}`, {
+      const url = `${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators/${collaboratorId}`;
+      console.log('[SharingModal] Making DELETE request to:', url);
+      console.log('[SharingModal] Request headers:', {
+        'Authorization': `Bearer ${token.substring(0, 20)}...`
+      });
+
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
+      console.log('[SharingModal] Remove collaborator response status:', response.status);
+      console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
+      
       if (response.ok) {
         setSuccess('Collaborator removed successfully');
         await fetchCollaborators();
         onCollaboratorsChange();
       } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to remove collaborator');
+        const errorText = await response.text();
+        console.error('[SharingModal] Failed to remove collaborator:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        setError(`Failed to remove collaborator: ${response.statusText} - ${errorText}`);
       }
     } catch (err) {
+      console.error('[SharingModal] Failed to remove collaborator:', err);
       setError('Failed to remove collaborator');
     } finally {
       setLoading(false);

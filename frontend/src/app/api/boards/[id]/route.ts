@@ -9,7 +9,7 @@ export async function GET(
     const resolvedParams = await params;
     
     // Make request to backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/boards/${resolvedParams.id}`, {
       method: 'GET',
       headers: {
@@ -56,7 +56,7 @@ export async function PUT(
     }
 
     // Make request to backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/boards/${resolvedParams.id}`, {
       method: 'PUT',
       headers: {
@@ -104,7 +104,7 @@ export async function DELETE(
     }
 
     // Make request to backend API
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/boards/${resolvedParams.id}`, {
       method: 'DELETE',
       headers: {
