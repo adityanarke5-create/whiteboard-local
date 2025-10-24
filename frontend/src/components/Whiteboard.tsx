@@ -303,7 +303,8 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
     if (activeTool === 'eraser') {
       canvas.isDrawingMode = true;
       // Set up eraser brush
-      if (!canvas.freeDrawingBrush || !(canvas.freeDrawingBrush instanceof window.fabric.EraserBrush)) {
+      if (!canvas.freeDrawingBrush || 
+          (window.fabric.EraserBrush && !(canvas.freeDrawingBrush instanceof window.fabric.EraserBrush))) {
         // Ensure EraserBrush is available
         if (window.fabric.EraserBrush) {
           canvas.freeDrawingBrush = new window.fabric.EraserBrush(canvas);
