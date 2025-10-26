@@ -18,8 +18,10 @@ class WebSocketServer {
 
   public attachServer(httpServer: HttpServer): void {
     if (!this.io) {
+      console.log('[WebSocket] Attaching Socket.IO server to HTTP server');
       this.httpServer = httpServer;
       this.io = initSocketIO(httpServer);
+      console.log('[WebSocket] Socket.IO server attached successfully');
     }
   }
 

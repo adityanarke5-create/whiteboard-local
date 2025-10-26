@@ -15,18 +15,62 @@ const boardUserCounts = new Map<string, Set<string>>();
 export function initSocketIO(httpServer: HttpServer): SocketIOServer {
   if (io) return io;
   
+  console.log('[WebSocket] Initializing Socket.IO server');
+  
   io = new SocketIOServer(httpServer, {
     path: '/api/socketio',
     cors: {
       origin: "*",
-      methods: ["GET", "POST"]
-    }
+      methods: ["GET", "POST"],
+      credentials: true
+    },
+    transports: ['websocket'], // Force WebSocket transport only
+    allowEIO3: true, // Allow Engine.IO v3 compatibility
+    pingInterval: 25000, // Ping interval in milliseconds
+    pingTimeout: 20000, // Ping timeout in milliseconds
+  });
+  
+  console.log('[WebSocket] Socket.IO server initialized with config:', {
+    path: '/api/socketio',
+    transports: ['websocket']
   });
   
   io.on('connection', (socket) => {
     console.log('[WebSocket] User connected:', { 
       socketId: socket.id,
       timestamp: new Date().toISOString()
+    });
+    
+    // Add transport information for debugging
+    console.log('[WebSocket] Connection transport:', {
+      socketId: socket.id,
+      transport: socket.conn.transport.name
+    });
+    
+    // Log when the connection is established
+    console.log('[WebSocket] Connection established successfully:', {
+      socketId: socket.id,
+      transport: socket.conn.transport.name,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Listen for transport upgrades
+    socket.conn.on('upgrade', (transport) => {
+      console.log('[WebSocket] Transport upgraded:', {
+        socketId: socket.id,
+        transport: transport.name
+      });
+    });
+    
+    // Listen for transport errors
+    socket.conn.on('packetCreate', (packet) => {
+      // Only log for debugging purposes, not for every packet
+      if (packet.type === 'error') {
+        console.log('[WebSocket] Packet creation error:', {
+          socketId: socket.id,
+          packet
+        });
+      }
     });
     
     socket.on('join-board', async (boardId) => {
@@ -46,11 +90,22 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       
       console.log(`[WebSocket] User ${socket.id} joined board ${boardId}. Active users: ${boardUserCounts.get(boardId)!.size}`);
       
+      // Log the join event
+      console.log('[WebSocket] Board join event processed:', {
+        socketId: socket.id,
+        boardId: boardId,
+        userCount: boardUserCounts.get(boardId)!.size,
+        timestamp: new Date().toISOString()
+      });
+      
       // Fetch the latest snapshot for this board and send it to the user
       try {
         const latestSnapshot = await databaseService.getLatestSnapshotByBoardId(boardId);
         if (latestSnapshot) {
-          console.log(`[WebSocket] Sending latest snapshot to user ${socket.id}`);
+          console.log(`[WebSocket] Sending latest snapshot to user ${socket.id}`, {
+            dataSize: latestSnapshot.data?.length,
+            timestamp: latestSnapshot.timestamp
+          });
           socket.emit('board-snapshot', { 
             data: latestSnapshot.data,
             timestamp: latestSnapshot.timestamp
@@ -93,6 +148,14 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       if (boardUserCounts.has(boardId)) {
         boardUserCounts.get(boardId)!.delete(socket.id);
         console.log(`[WebSocket] User ${socket.id} left board ${boardId}. Active users: ${boardUserCounts.get(boardId)!.size}`);
+        
+        // Log the leave event
+        console.log('[WebSocket] Board leave event processed:', {
+          socketId: socket.id,
+          boardId: boardId,
+          remainingUserCount: boardUserCounts.get(boardId)!.size,
+          timestamp: new Date().toISOString()
+        });
         
         // If no more users on this board, save the final snapshot
         if (boardUserCounts.get(boardId)!.size === 0) {
@@ -142,24 +205,22 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
     });
     
     socket.on('canvas-action', async (data) => {
-      const { boardId, action, userId } = data;
+      const { boardId, action, userId: cognitoUserId } = data;
       console.log('[WebSocket] Received canvas-action:', { 
         socketId: socket.id,
         boardId,
-        userId,
+        cognitoUserId,
         actionType: action?.type,
-        actionDetails: action,
-        timestamp: new Date().toISOString()
+        objectType: action?.object?.type
       });
       
       // Validate required fields
-      if (!boardId || !action || !userId) {
+      if (!boardId || !action || !cognitoUserId) {
         console.error('[WebSocket] Invalid canvas-action data', { 
           boardId, 
           action, 
-          userId,
-          socketId: socket.id,
-          timestamp: new Date().toISOString()
+          cognitoUserId,
+          socketId: socket.id
         });
         return;
       }
@@ -168,86 +229,97 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       if (!action.type) {
         console.error('[WebSocket] Invalid action structure - missing type', { 
           action,
-          socketId: socket.id,
-          timestamp: new Date().toISOString()
+          socketId: socket.id
         });
         return;
+      }
+      
+      // Map Cognito userId to database userId
+      let databaseUserId = cognitoUserId;
+      try {
+        const user = await databaseService.getUserByCognitoId(cognitoUserId);
+        if (user) {
+          databaseUserId = user.id;
+          console.log('[WebSocket] Mapped Cognito userId to database userId:', {
+            cognitoUserId,
+            databaseUserId
+          });
+        } else {
+          console.warn('[WebSocket] User not found in database, using Cognito userId:', {
+            cognitoUserId
+          });
+        }
+      } catch (error) {
+        console.error('[WebSocket] Error mapping Cognito userId to database userId:', error);
       }
       
       try {
         // Persist the action in the database
         const actionRecord = await databaseService.createAction({
           boardId,
-          userId,
+          userId: databaseUserId, // Use the mapped database userId
           action: JSON.stringify(action)
         });
         
         console.log('[WebSocket] Action persisted to database:', { 
           actionId: actionRecord.id,
           boardId,
-          userId,
-          timestamp: new Date().toISOString()
+          userId: databaseUserId
         });
       } catch (error) {
         console.error('[WebSocket] Error persisting action to database:', error);
       }
       
+      // Log the action being broadcasted
+      console.log('[WebSocket] Broadcasting canvas-update action:', { 
+        boardId,
+        actionType: action.type,
+        objectType: action.object?.type,
+        userId: databaseUserId,
+        actionData: action // Log the full action data for debugging
+      });
+      
       // Broadcast to all other users in the same board
       const roomSize = io?.sockets.adapter.rooms.get(boardId)?.size || 0;
       console.log(`[WebSocket] Broadcasting canvas-update to board ${boardId} (room size: ${roomSize})`);
-      socket.to(boardId).emit('canvas-update', { action, userId });
+      socket.to(boardId).emit('canvas-update', { action, userId: databaseUserId });
       console.log(`[WebSocket] Broadcasted canvas-update to board ${boardId} (excluding sender ${socket.id})`);
       
       // Send confirmation back to sender
       socket.emit('action-processed', { 
         actionType: action.type, 
         boardId, 
-        userId,
-        timestamp: new Date().toISOString()
+        userId: databaseUserId
       });
       console.log('[WebSocket] Action processed confirmation sent:', { 
         socketId: socket.id,
         boardId,
-        userId,
-        actionType: action.type,
-        timestamp: new Date().toISOString()
+        userId: databaseUserId,
+        actionType: action.type
       });
     });
     
     socket.on('update-board-state', (data) => {
+      // Remove logging for board state updates
       const { boardId, state } = data;
-      console.log('[WebSocket] Received board state update:', { 
-        socketId: socket.id,
-        boardId,
-        stateLength: state?.length,
-        timestamp: new Date().toISOString()
-      });
       
       // Store the current board state for potential snapshot saving
       if (boardId && state) {
         boardStates.set(boardId, state);
-        console.log(`[WebSocket] Board state updated for board ${boardId}`);
       }
     });
     
     socket.on('request-board-state', async (boardId) => {
-      console.log('[WebSocket] Board state requested:', { 
-        socketId: socket.id,
-        boardId,
-        timestamp: new Date().toISOString()
-      });
-      
+      // Remove logging for board state requests
       // Fetch the latest snapshot for this board and send it to the user
       try {
         const latestSnapshot = await databaseService.getLatestSnapshotByBoardId(boardId);
         if (latestSnapshot) {
-          console.log(`[WebSocket] Sending latest snapshot to user ${socket.id}`);
           socket.emit('board-snapshot', { 
             data: latestSnapshot.data,
             timestamp: latestSnapshot.timestamp
           });
         } else {
-          console.log(`[WebSocket] No snapshot found for board ${boardId}, sending empty board state`);
           socket.emit('board-snapshot', { 
             data: '{"objects":[],"background":"#f8fafc"}',
             timestamp: new Date().toISOString()
@@ -264,38 +336,23 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
     });
     
     socket.on('cursor-move', (data) => {
+      // Remove cursor-move handling and logging
       const { boardId, userId, x, y } = data;
-      console.log('[WebSocket] Received cursor-move:', { 
-        socketId: socket.id,
-        boardId,
-        userId,
-        x,
-        y,
-        timestamp: new Date().toISOString()
-      });
       
       // Validate required fields
       if (!boardId || !userId || x === undefined || y === undefined) {
-        console.error('[WebSocket] Invalid cursor-move data', { 
-          boardId, 
-          userId, 
-          x, 
-          y,
-          socketId: socket.id,
-          timestamp: new Date().toISOString()
-        });
         return;
       }
       
       // Broadcast cursor position to all other users in the same board
       socket.to(boardId).emit('cursor-update', { userId, x, y });
-      console.log(`[WebSocket] Broadcasted cursor-update to board ${boardId} (excluding sender ${socket.id})`);
     });
     
-    socket.on('disconnect', () => {
-      console.log('[WebSocket] User disconnected:', { 
+    // Log when the socket is disconnected
+    socket.on('disconnect', (reason) => {
+      console.log('[WebSocket] User disconnected:', {
         socketId: socket.id,
-        timestamp: new Date().toISOString()
+        reason: reason
       });
       
       // Handle cleanup for all boards this user was in
@@ -303,6 +360,13 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         if (users.has(socket.id)) {
           users.delete(socket.id);
           console.log(`[WebSocket] User ${socket.id} disconnected from board ${boardId}. Active users: ${users.size}`);
+          
+          // Notify other users in the same board that this user has disconnected
+          socket.to(boardId).emit('user-disconnected', { 
+            userId: socket.id,
+            boardId
+          });
+          console.log(`[WebSocket] Broadcasted user-disconnected event for user ${socket.id} to board ${boardId}`);
           
           // If no more users on this board, save the final snapshot
           if (users.size === 0) {
@@ -326,13 +390,14 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       }
     });
     
-    // Log any other events
+    // Log only canvas-related events
     socket.onAny((eventName, ...args) => {
-      console.log(`[WebSocket] Received event: ${eventName}`, { 
-        socketId: socket.id, 
-        args,
-        timestamp: new Date().toISOString()
-      });
+      if (eventName === 'canvas-action' || eventName === 'canvas-update' || eventName === 'action-processed') {
+        console.log(`[WebSocket] Received event: ${eventName}`, { 
+          socketId: socket.id, 
+          args
+        });
+      }
     });
     
     // Log socket errors
@@ -349,6 +414,22 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
   io.engine.on('connection_error', (error) => {
     console.error('[WebSocket] Connection error:', { 
       error,
+      timestamp: new Date().toISOString()
+    });
+  });
+  
+  // Log transport upgrades on the engine level
+  io.engine.on('upgrade', (transport) => {
+    console.log('[WebSocket] Engine transport upgraded:', {
+      transport: transport.name,
+      timestamp: new Date().toISOString()
+    });
+  });
+  
+  // Log initial transport
+  io.engine.on('initial_headers', (headers, req) => {
+    console.log('[WebSocket] Initial connection headers:', {
+      transport: req._query?.transport,
       timestamp: new Date().toISOString()
     });
   });

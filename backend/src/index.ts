@@ -8,7 +8,11 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 app.use(express.json());
 
 // Initialize WebSocket server

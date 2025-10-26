@@ -6,6 +6,7 @@ import { AuthService } from '@/lib/auth-service';
 
 // Backend API base URL - using the dedicated backend server port
 const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+console.log('[WebSocket] Backend URL:', BACKEND_API_BASE_URL);
 
 // Declare fabric as a global variable since we'll load it dynamically
 declare global {
@@ -87,28 +88,119 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
   // Initialize Socket.io connection
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Initialize Socket.io client
-      const socket = io({
+      // Initialize Socket.io client with proper configuration to ensure WebSocket transport
+      console.log('[WebSocket] Initializing connection to:', BACKEND_API_BASE_URL);
+      const socket = io(BACKEND_API_BASE_URL, {
         path: '/api/socketio',
+        transports: ['websocket'], // Force WebSocket transport only
+        upgrade: false, // Disable HTTP upgrade to WebSocket
+        reconnection: true, // Enable reconnection
+        reconnectionAttempts: 5, // Limit reconnection attempts
+        reconnectionDelay: 1000, // Delay between reconnection attempts
+        reconnectionDelayMax: 5000, // Maximum delay between reconnection attempts
+        randomizationFactor: 0.5, // Randomization factor for reconnection delay
+        timeout: 20000, // Connection timeout
+      });
+      
+      console.log('[WebSocket] Socket instance created:', {
+        id: socket.id,
+        connected: socket.connected
       });
       
       socketRef.current = socket;
       
-      // Join the board room
-      socket.emit('join-board', boardId);
-      
-      // Listen for canvas updates from other users
-      socket.on('canvas-update', (data) => {
-        if (fabricRef.current) {
-          // Apply the action to the canvas
-          applyRemoteAction(data);
+      // Add connection event listeners for debugging
+      socket.on('connect', () => {
+        console.log('[WebSocket] Connected to server:', { 
+          socketId: socket.id,
+          transport: socket.io.engine.transport.name,
+          connected: socket.connected
+        });
+        
+        // Verify that we're using WebSocket transport
+        if (socket.io.engine.transport.name !== 'websocket') {
+          console.warn('[WebSocket] WARNING: Not using WebSocket transport!', {
+            transport: socket.io.engine.transport.name
+          });
+        } else {
+          console.log('[WebSocket] CONFIRMED: Using WebSocket transport');
         }
+        
+        // Join the board room when connected
+        console.log('[WebSocket] Joining board:', boardId);
+        socket.emit('join-board', boardId);
+      });
+      
+      socket.on('connect_error', (error) => {
+        console.error('[WebSocket] Connection error:', error);
+        console.error('[WebSocket] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          type: error.constructor.name
+        });
+        
+        // Try to reconnect manually after a delay
+        setTimeout(() => {
+          if (socket && !socket.connected) {
+            console.log('[WebSocket] Attempting manual reconnection...');
+            socket.connect();
+          }
+        }, 3000);
+      });
+      
+      socket.on('disconnect', (reason) => {
+        console.log('[WebSocket] Disconnected from server:', { 
+          reason,
+          connected: socket.connected
+        });
+      });
+      
+      // Add transport upgrade event listener
+      socket.io.engine.on('upgrade', () => {
+        console.log('[WebSocket] Transport upgraded:', socket.io.engine.transport.name);
+      });
+      
+      // Add packet event listeners for debugging
+      socket.on('connect', () => {
+        console.log('[WebSocket] Successfully connected with transport:', socket.io.engine.transport.name);
+      });
+      
+      // Log connection state changes
+      socket.on('connect', () => {
+        console.log('[WebSocket] Connection state: CONNECTED');
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('[WebSocket] Connection state: DISCONNECTED');
+      });
+      
+      socket.on('connect_error', () => {
+        console.log('[WebSocket] Connection state: CONNECTION_ERROR');
+      });
+      
+      // Listen for board join confirmation
+      socket.on('board-joined', (data) => {
+        console.log('[WebSocket] Board joined confirmation received:', data);
+      });
+      
+      // Listen for board leave confirmation
+      socket.on('board-left', (data) => {
+        console.log('[WebSocket] Board left confirmation received:', data);
+      });
+      
+      // Listen for action processed confirmation
+      socket.on('action-processed', (data) => {
+        console.log('[WebSocket] Action processed confirmation received:', data);
       });
       
       // Listen for complete board state from the server
       socket.on('board-snapshot', (data) => {
         if (fabricRef.current) {
-          console.log('[Whiteboard] Received board snapshot from server');
+          console.log('[Whiteboard] Received board snapshot from server:', {
+            dataSize: data.data?.length,
+            timestamp: data.timestamp
+          });
           // Load the complete board state
           fabricRef.current.loadFromJSON(data.data, () => {
             fabricRef.current.renderAll();
@@ -117,15 +209,54 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         }
       });
       
-      // Listen for cursor updates from other users
-      socket.on('cursor-update', (data) => {
+      // Listen for canvas updates from other users
+      socket.on('canvas-update', (data) => {
         if (fabricRef.current) {
-          updateRemoteCursor(data.userId, data.x, data.y);
+          console.log('[Whiteboard] Received canvas update:', {
+            actionType: data.action?.type,
+            userId: data.userId
+          });
+          // Apply the action to the canvas
+          applyRemoteAction(data);
+        } else {
+          console.log('[Whiteboard] Fabric not ready, queuing canvas update');
         }
       });
       
+      // Log any other events
+      socket.onAny((eventName, ...args) => {
+        // Only log canvas-related events
+        if (eventName === 'canvas-update' || eventName === 'canvas-action' || eventName === 'action-processed') {
+          console.log(`[WebSocket] Received event: ${eventName}`, { 
+            socketId: socket.id, 
+            args
+          });
+        }
+      });
+      
+      // Periodically check connection status
+      // const connectionCheckInterval = setInterval(() => {
+      //   if (socket) {
+      //     // Only log connection status occasionally to reduce noise
+      //     if (Math.random() < 0.1) { // Log 10% of checks
+      //       console.log('[WebSocket] Connection status check:', {
+      //         connected: socket.connected,
+      //         transport: socket.connected ? socket.io.engine.transport.name : 'disconnected'
+      //       });
+      //     }
+      //   }
+      // }, 10000); // Check every 10 seconds
+      
       // Cleanup
       return () => {
+        // Clear the connection check interval
+        // clearInterval(connectionCheckInterval);
+        
+        // Clear the state update interval
+        if (stateUpdateIntervalRef.current) {
+          clearInterval(stateUpdateIntervalRef.current);
+        }
+        
         // Send current board state before leaving
         if (fabricRef.current && socketRef.current) {
           const boardState = JSON.stringify(fabricRef.current.toJSON());
@@ -208,17 +339,6 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       });
 
       canvas.on('mouse:move', function(opt: any) {
-        // Send cursor position to other users
-        if (socketRef.current && fabricRef.current) {
-          const pointer = fabricRef.current.getPointer(opt.e);
-          socketRef.current.emit('cursor-move', {
-            boardId,
-            userId,
-            x: pointer.x,
-            y: pointer.y
-          });
-        }
-        
         // Handle panning
         if (canvas.isDragging) {
           const e = opt.e;
@@ -250,15 +370,40 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
 
       // Handle canvas events for real-time collaboration
       canvas.on('object:added', (options: any) => {
-        if (!options.target) return;
+        // Only log occasionally to reduce noise
+        if (Math.random() < 0.1) {
+          console.log('[Whiteboard] Canvas object:added event triggered');
+        }
+        
+        if (!options.target) {
+          console.warn('[Whiteboard] No target in object:added event');
+          return;
+        }
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
+          // Only log occasionally to reduce noise
+          if (Math.random() < 0.1) {
+            console.log('[Whiteboard] Skipping remote action in object:added event');
+          }
+          return;
+        }
+        
+        // Skip if we're currently drawing a shape (to prevent sending incomplete shapes)
+        if (isDrawingShapeRef.current) {
+          // Only log occasionally to reduce noise
+          if (Math.random() < 0.1) {
+            console.log('[Whiteboard] Skipping object:added event during shape drawing');
+          }
           return;
         }
         
         // Ensure the object has an ID
         if (!options.target.id) {
+          // Only log occasionally to reduce noise
+          if (Math.random() < 0.1) {
+            console.log('[Whiteboard] Generating new ID for object');
+          }
           options.target.id = crypto.randomUUID();
         }
         
@@ -268,23 +413,55 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
         };
         
-        socketRef.current?.emit('canvas-action', {
-          boardId,
-          action,
-          userId
+        // Only log occasionally to reduce noise
+        if (Math.random() < 0.1) {
+          console.log('[Whiteboard] Sending canvas action:', { 
+            boardId, 
+            actionType: action.type,
+            userId
+          });
+        }
+        
+        if (socketRef.current) {
+          socketRef.current.emit('canvas-action', {
+            boardId,
+            action,
+            userId // This is the Cognito userId
+          });
+          
+          // Only log occasionally to reduce noise
+          if (Math.random() < 0.1) {
+            console.log('[Whiteboard] Canvas action sent to server');
+          }
+        } else {
+          console.warn('[Whiteboard] Socket not available, cannot send canvas action');
+        }
+        
+        // Log confirmation when action is processed (only occasionally)
+        socketRef.current?.once('action-processed', (data) => {
+          if (Math.random() < 0.1) {
+            console.log('[Whiteboard] Action processed confirmation received');
+          }
         });
       });
       
       canvas.on('object:modified', (options: any) => {
-        if (!options.target) return;
+        console.log('[Whiteboard] Canvas object:modified event triggered', { options });
+        
+        if (!options.target) {
+          console.warn('[Whiteboard] No target in object:modified event');
+          return;
+        }
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
+          console.log('[Whiteboard] Skipping remote action in object:modified event');
           return;
         }
         
         // Ensure the object has an ID
         if (!options.target.id) {
+          console.log('[Whiteboard] Generating new ID for object');
           options.target.id = crypto.randomUUID();
         }
         
@@ -295,24 +472,44 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
         };
         
-        socketRef.current?.emit('canvas-action', {
-          boardId,
-          action,
-          userId
+        console.log('[Whiteboard] Sending canvas modify action:', { boardId, action, userId, userType: 'cognito' });
+        
+        if (socketRef.current) {
+          socketRef.current.emit('canvas-action', {
+            boardId,
+            action,
+            userId // This is the Cognito userId
+          });
+          
+          console.log('[Whiteboard] Canvas modify action sent to server');
+        } else {
+          console.warn('[Whiteboard] Socket not available, cannot send canvas modify action');
+        }
+        
+        // Log confirmation when action is processed
+        socketRef.current?.once('action-processed', (data) => {
+          console.log('[Whiteboard] Modify action processed confirmation received:', data);
         });
       });
       
       canvas.on('object:removed', (options: any) => {
-        if (!options.target) return;
+        console.log('[Whiteboard] Canvas object:removed event triggered', { options });
+        
+        if (!options.target) {
+          console.warn('[Whiteboard] No target in object:removed event');
+          return;
+        }
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
+          console.log('[Whiteboard] Skipping remote action in object:removed event');
           return;
         }
         
         // Ensure the object has an ID
         if (!options.target.id) {
           // If the object doesn't have an ID, we can't sync it properly
+          console.warn('[Whiteboard] Object to remove has no ID, cannot sync');
           return;
         }
         
@@ -322,10 +519,23 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           objectId: options.target.id
         };
         
-        socketRef.current?.emit('canvas-action', {
-          boardId,
-          action,
-          userId
+        console.log('[Whiteboard] Sending canvas remove action:', { boardId, action, userId, userType: 'cognito' });
+        
+        if (socketRef.current) {
+          socketRef.current.emit('canvas-action', {
+            boardId,
+            action,
+            userId // This is the Cognito userId
+          });
+          
+          console.log('[Whiteboard] Canvas remove action sent to server');
+        } else {
+          console.warn('[Whiteboard] Socket not available, cannot send canvas remove action');
+        }
+        
+        // Log confirmation when action is processed
+        socketRef.current?.once('action-processed', (data) => {
+          console.log('[Whiteboard] Remove action processed confirmation received:', data);
         });
       });
 
@@ -395,6 +605,12 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       canvas.defaultCursor = 'default';
     }
   }, [activeTool, strokeColor, strokeWidth]);
+
+  // Ref to track if we're currently drawing a shape
+  const isDrawingShapeRef = useRef(false);
+  
+  // Ref to track the current shape being drawn
+  const currentDrawingShapeRef = useRef<any>(null);
 
   // Handle mouse down events
   const handleMouseDown = (options: any) => {
@@ -480,8 +696,12 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       if (shape) {
         // Assign a unique ID to the shape
         shape.id = crypto.randomUUID();
+        // Mark that we're drawing a shape
+        isDrawingShapeRef.current = true;
+        currentDrawingShapeRef.current = shape;
         canvas.add(shape);
         canvas.setActiveObject(shape);
+        console.log('[Whiteboard] Shape created and added to canvas, waiting for mouse up to send action');
       }
     }
   };
@@ -530,98 +750,224 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
 
   // Handle mouse up events
   const handleMouseUp = () => {
-    // Any cleanup needed after drawing
-  };
-
-  // Update remote cursor position
-  const updateRemoteCursor = (cursorUserId: string, x: number, y: number) => {
-    if (!fabricRef.current) return;
-    
-    const canvas = fabricRef.current;
-    
-    // Don't show our own cursor
-    if (cursorUserId === userId) return;
-    
-    let cursor = cursorRefs.current.get(cursorUserId);
-    
-    if (!cursor) {
-      // Create a new cursor if it doesn't exist
-      cursor = new window.fabric.Circle({
-        radius: 5,
-        fill: '#ff0000',
-        left: x,
-        top: y,
-        originX: 'center',
-        originY: 'center',
-        selectable: false,
-        hasControls: false,
-        hasBorders: false,
-        lockMovementX: true,
-        lockMovementY: true,
+    // Check if we were drawing a shape
+    if (isDrawingShapeRef.current && currentDrawingShapeRef.current && fabricRef.current) {
+      const canvas = fabricRef.current;
+      const shape = currentDrawingShapeRef.current;
+      
+      // Send the completed shape action to other users
+      const action = {
+        type: 'add',
+        object: shape.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
+      };
+      
+      console.log('[Whiteboard] Sending completed shape action on mouse up:', { 
+        boardId, 
+        actionType: action.type,
+        userId,
+        objectType: shape.type,
+        objectId: shape.id
       });
       
-      cursor.id = `cursor-${cursorUserId}`;
-      canvas.add(cursor);
-      cursorRefs.current.set(cursorUserId, cursor);
+      if (socketRef.current) {
+        socketRef.current.emit('canvas-action', {
+          boardId,
+          action,
+          userId // This is the Cognito userId
+        });
+        
+        console.log('[Whiteboard] Completed shape action sent to server');
+      } else {
+        console.warn('[Whiteboard] Socket not available, cannot send completed shape action');
+      }
+      
+      // Reset drawing state
+      isDrawingShapeRef.current = false;
+      currentDrawingShapeRef.current = null;
+      console.log('[Whiteboard] Drawing state reset');
     }
-    
-    // Update cursor position
-    cursor.set({ left: x, top: y });
-    canvas.renderAll();
   };
 
   // Apply remote actions to the canvas
   const applyRemoteAction = (data: any) => {
-    if (!fabricRef.current) return;
+    if (!fabricRef.current) {
+      console.log('[Whiteboard] Fabric not ready for remote action');
+      return;
+    }
     
     const { action, userId: actionUserId } = data;
     const canvas = fabricRef.current;
     
     // Don't process our own actions
     if (actionUserId === userId) {
+      console.log('[Whiteboard] Skipping own action:', { actionType: action.type });
+      return;
+    }
+    
+    console.log('[Whiteboard] Applying remote action:', { 
+      actionType: action.type, 
+      actionUserId,
+      objectType: action.object?.type,
+      objectId: action.object?.id
+    });
+    
+    // Validate action data
+    if (!action || !action.type) {
+      console.error('[Whiteboard] Invalid action data:', action);
       return;
     }
     
     switch (action.type) {
       case 'add':
-        // Use enlivenObjects to properly deserialize Fabric objects
-        window.fabric.util.enlivenObjects([action.object], (enlivenedObjects: any[]) => {
-          enlivenedObjects.forEach((obj) => {
-            // Ensure the object has a proper ID
-            if (!obj.id && action.object.id) {
-              obj.id = action.object.id;
-            }
-            // Mark as remote action to avoid infinite loop
-            obj.remoteAction = true;
-            canvas.add(obj);
+        try {
+          // Log the object data being processed
+          console.log('[Whiteboard] Processing add action object data:', action.object);
+          
+          // Validate object data
+          if (!action.object || !action.object.type) {
+            console.error('[Whiteboard] Invalid object data for add action:', action.object);
+            return;
+          }
+          
+          // Create a deep copy of the object to avoid reference issues
+          const objectData = JSON.parse(JSON.stringify(action.object));
+          
+          // Get the fabric class for this object type
+          const FabricClass = window.fabric[objectData.type];
+          if (!FabricClass) {
+            console.error('[Whiteboard] Unknown object type:', objectData.type);
+            return;
+          }
+          
+          // Remove the 'type' property from objectData since it's not a valid option
+          const { type, ...options } = objectData;
+          
+          // Ensure the object has proper styling
+          if (options.fill === 'transparent' && !options.stroke) {
+            options.stroke = '#000000'; // Default stroke color
+          }
+          
+          // Create the fabric object based on type
+          let fabricObject;
+          if (type === 'line') {
+            // Special handling for lines - use the points array
+            const points = [objectData.x1, objectData.y1, objectData.x2, objectData.y2];
+            fabricObject = new FabricClass(points, options);
+          } else {
+            // For other objects, pass options directly
+            fabricObject = new FabricClass(options);
+          }
+          
+          // Ensure the object has a proper ID
+          if (!fabricObject.id && objectData.id) {
+            fabricObject.id = objectData.id;
+          }
+          
+          // Ensure the object is visible
+          fabricObject.visible = true;
+          
+          // Mark as remote action to avoid infinite loop
+          fabricObject.remoteAction = true;
+          
+          // Log canvas state before adding object
+          console.log('[Whiteboard] Canvas state before adding object:', {
+            width: canvas.width,
+            height: canvas.height,
+            zoom: canvas.getZoom(),
+            viewport: canvas.viewportTransform
           });
-          canvas.renderAll();
-        });
+          
+          // Add the object to the canvas
+          canvas.add(fabricObject);
+          console.log('[Whiteboard] Object added to canvas, triggering render');
+          
+          // Log object position
+          console.log('[Whiteboard] Added object position:', {
+            left: fabricObject.left,
+            top: fabricObject.top,
+            width: fabricObject.width,
+            height: fabricObject.height
+          });
+          
+          // Force a complete re-render
+          setTimeout(() => {
+            canvas.renderAll();
+            console.log('[Whiteboard] Canvas render completed');
+            
+            // Verify the object was added
+            const objects = canvas.getObjects();
+            console.log('[Whiteboard] Canvas objects after addition:', objects.length);
+            if (objects.length > 0) {
+              console.log('[Whiteboard] Last object in canvas:', objects[objects.length - 1]);
+            }
+            
+            // Log successful addition
+            console.log('[Whiteboard] Remote add action applied successfully:', { 
+              objectType: fabricObject.type,
+              objectId: fabricObject.id,
+              canvasObjectsCount: canvas.getObjects().length
+            });
+            
+            // Log the actual object that was added
+            console.log('[Whiteboard] Added object details:', fabricObject);
+          }, 0);
+        } catch (error) {
+          console.error('[Whiteboard] Error applying remote add action:', error);
+          console.error('[Whiteboard] Object data that failed:', action.object);
+        }
         break;
         
       case 'modify':
-        const objectToModify = canvas.getObjectById(action.objectId);
-        if (objectToModify) {
-          // Mark as remote action to avoid infinite loop
-          objectToModify.remoteAction = true;
-          // Apply all properties from the action object
-          objectToModify.set(action.object);
-          canvas.renderAll();
+        try {
+          // Validate object ID
+          if (!action.objectId) {
+            console.error('[Whiteboard] Missing objectId for modify action:', action);
+            return;
+          }
+          
+          const objectToModify = canvas.getObjectById(action.objectId);
+          if (objectToModify) {
+            // Mark as remote action to avoid infinite loop
+            objectToModify.remoteAction = true;
+            // Apply all properties from the action object
+            objectToModify.set(action.object);
+            canvas.renderAll();
+            console.log('[Whiteboard] Remote modify action applied:', { objectId: action.objectId });
+          } else {
+            console.warn('[Whiteboard] Object to modify not found:', { objectId: action.objectId });
+          }
+        } catch (error) {
+          console.error('[Whiteboard] Error applying remote modify action:', error);
+          console.error('[Whiteboard] Action data that failed:', action);
         }
         break;
         
       case 'remove':
-        const objectToRemove = canvas.getObjectById(action.objectId);
-        if (objectToRemove) {
-          // Mark as remote action to avoid infinite loop
-          objectToRemove.remoteAction = true;
-          canvas.remove(objectToRemove);
-          canvas.renderAll();
+        try {
+          // Validate object ID
+          if (!action.objectId) {
+            console.error('[Whiteboard] Missing objectId for remove action:', action);
+            return;
+          }
+          
+          const objectToRemove = canvas.getObjectById(action.objectId);
+          if (objectToRemove) {
+            // Mark as remote action to avoid infinite loop
+            objectToRemove.remoteAction = true;
+            canvas.remove(objectToRemove);
+            canvas.renderAll();
+            console.log('[Whiteboard] Remote remove action applied:', { objectId: action.objectId });
+          } else {
+            console.warn('[Whiteboard] Object to remove not found:', { objectId: action.objectId });
+          }
+        } catch (error) {
+          console.error('[Whiteboard] Error applying remote remove action:', error);
+          console.error('[Whiteboard] Action data that failed:', action);
         }
         break;
         
       default:
-        console.warn('Unknown action type', { type: action.type });
+        console.warn('[Whiteboard] Unknown action type', { type: action.type });
     }
   };
 

@@ -1,23 +1,21 @@
-// Synchronized debug script - run this script twice with different arguments
-// node synchronized-debug.js listener
-// node synchronized-debug.js sender
-
+// Synchronized debug script with sender and receiver
 const io = require('socket.io-client');
-const args = process.argv.slice(2);
-const mode = args[0] || 'sender'; // 'sender' or 'listener'
 
-const BOARD_ID = 'sync-debug-board';
+// Configuration
 const SERVER_URL = 'http://localhost:3001';
+const BOARD_ID = process.argv[3] || 'test-board-' + Date.now(); // Allow passing board ID as argument
+const MODE = process.argv[2] || 'sender'; // 'sender' or 'receiver'
 
-console.log(`=== Synchronized WebSocket Debug Test (${mode}) ===`);
-console.log(`Mode: ${mode}`);
-console.log(`Board ID: ${BOARD_ID}`);
+console.log(`=== WebSocket ${MODE} Test ===`);
 console.log(`Server URL: ${SERVER_URL}`);
+console.log(`Board ID: ${BOARD_ID}`);
 console.log('Time:', new Date().toISOString());
 
 // Connect to the WebSocket server
 const socket = io(SERVER_URL, {
   path: '/api/socketio',
+  transports: ['websocket'], // Force WebSocket transport only
+  upgrade: false, // Disable HTTP upgrade to WebSocket
   reconnection: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
@@ -28,19 +26,19 @@ let isConnected = false;
 
 socket.on('connect', () => {
   isConnected = true;
-  console.log(`✓ ${mode} connected to WebSocket server`);
+  console.log(`✓ ${MODE} connected to WebSocket server`);
   console.log('  Socket ID:', socket.id);
   console.log('  Time:', new Date().toISOString());
   
   // Join the board
-  console.log(`\n→ ${mode} joining board...`);
+  console.log(`\n→ ${MODE} joining board...`);
   socket.emit('join-board', BOARD_ID);
 });
 
 socket.on('board-joined', (data) => {
-  console.log(`← ${mode} received board-joined confirmation:`, data);
+  console.log(`← ${MODE} received board-joined confirmation:`, data);
   
-  if (mode === 'sender') {
+  if (MODE === 'sender') {
     // Sender starts sending messages after joining
     setTimeout(() => {
       console.log('\n→ Sender sending test canvas actions...');
@@ -111,44 +109,44 @@ socket.on('board-joined', (data) => {
 
 // Listen for canvas updates
 socket.on('canvas-update', (data) => {
-  console.log(`← ${mode} received canvas-update:`, data);
+  console.log(`← ${MODE} received canvas-update:`, data);
 });
 
 // Listen for cursor updates
 socket.on('cursor-update', (data) => {
-  console.log(`← ${mode} received cursor-update:`, data);
+  console.log(`← ${MODE} received cursor-update:`, data);
 });
 
 socket.on('action-processed', (data) => {
-  console.log(`← ${mode} received action-processed:`, data);
+  console.log(`← ${MODE} received action-processed:`, data);
 });
 
 socket.on('disconnect', () => {
   isConnected = false;
-  console.log(`✗ ${mode} disconnected from WebSocket server at:`, new Date().toISOString());
+  console.log(`✗ ${MODE} disconnected from WebSocket server at:`, new Date().toISOString());
 });
 
 // Handle connection errors
 socket.on('connect_error', (error) => {
-  console.log(`✗ ${mode} connection error:`, error.message);
+  console.log(`✗ ${MODE} connection error:`, error.message);
 });
 
 socket.on('error', (error) => {
-  console.log(`✗ ${mode} WebSocket error:`, error.message);
+  console.log(`✗ ${MODE} WebSocket error:`, error.message);
 });
 
 // Log all events
 socket.onAny((eventName, ...args) => {
-  console.log(`← ${mode} received event: ${eventName}`, args);
+  console.log(`← ${MODE} received event: ${eventName}`, args);
 });
 
 // Handle process termination
 process.on('SIGINT', () => {
-  console.log(`\nReceived SIGINT, cleaning up ${mode}...`);
+  console.log('\nReceived SIGINT, cleaning up...');
   if (isConnected) {
     socket.disconnect();
   }
   process.exit(0);
 });
 
-console.log(`${mode} script initialized. Waiting for connection...`);
+console.log(`${MODE} script initialized. Waiting for connection...`);
