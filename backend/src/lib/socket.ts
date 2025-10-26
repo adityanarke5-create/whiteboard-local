@@ -7,6 +7,11 @@ export type SocketServer = SocketIOServer;
 let io: SocketIOServer | null = null;
 const databaseService = new DatabaseService();
 
+// Store board state temporarily for snapshot creation
+const boardStates = new Map<string, string>();
+// Track active users per board
+const boardUserCounts = new Map<string, Set<string>>();
+
 export function initSocketIO(httpServer: HttpServer): SocketIOServer {
   if (io) return io;
   
@@ -32,7 +37,14 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       });
       
       socket.join(boardId);
-      console.log(`[WebSocket] User ${socket.id} joined board ${boardId}`);
+      
+      // Track user in board
+      if (!boardUserCounts.has(boardId)) {
+        boardUserCounts.set(boardId, new Set());
+      }
+      boardUserCounts.get(boardId)!.add(socket.id);
+      
+      console.log(`[WebSocket] User ${socket.id} joined board ${boardId}. Active users: ${boardUserCounts.get(boardId)!.size}`);
       
       // Fetch the latest snapshot for this board and send it to the user
       try {
@@ -68,7 +80,7 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       });
     });
     
-    socket.on('leave-board', (boardId) => {
+    socket.on('leave-board', async (boardId) => {
       console.log('[WebSocket] User leaving board:', { 
         socketId: socket.id,
         boardId,
@@ -76,7 +88,49 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       });
       
       socket.leave(boardId);
-      console.log(`[WebSocket] User ${socket.id} left board ${boardId}`);
+      
+      // Remove user from board tracking
+      if (boardUserCounts.has(boardId)) {
+        boardUserCounts.get(boardId)!.delete(socket.id);
+        console.log(`[WebSocket] User ${socket.id} left board ${boardId}. Active users: ${boardUserCounts.get(boardId)!.size}`);
+        
+        // If no more users on this board, save the final snapshot
+        if (boardUserCounts.get(boardId)!.size === 0) {
+          console.log(`[WebSocket] No more users on board ${boardId}. Saving final snapshot.`);
+          
+          // Check if we have a board state to save
+          if (boardStates.has(boardId)) {
+            try {
+              const boardState = boardStates.get(boardId)!;
+              
+              // Delete any existing snapshots for this board
+              await databaseService.deleteSnapshotsByBoardId(boardId);
+              
+              // Create new snapshot with the final board state
+              const snapshot = await databaseService.createSnapshot({
+                boardId,
+                data: boardState,
+              });
+              
+              console.log('[WebSocket] Final snapshot saved for board:', { 
+                boardId,
+                snapshotId: snapshot.id,
+                timestamp: new Date().toISOString()
+              });
+              
+              // Clean up the temporary board state
+              boardStates.delete(boardId);
+            } catch (error) {
+              console.error('[WebSocket] Error saving final snapshot:', error);
+            }
+          } else {
+            console.log(`[WebSocket] No board state to save for board ${boardId}`);
+          }
+          
+          // Clean up the user tracking for this board
+          boardUserCounts.delete(boardId);
+        }
+      }
       
       // Emit confirmation back to client
       socket.emit('board-left', { boardId, socketId: socket.id });
@@ -160,6 +214,22 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       });
     });
     
+    socket.on('update-board-state', (data) => {
+      const { boardId, state } = data;
+      console.log('[WebSocket] Received board state update:', { 
+        socketId: socket.id,
+        boardId,
+        stateLength: state?.length,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Store the current board state for potential snapshot saving
+      if (boardId && state) {
+        boardStates.set(boardId, state);
+        console.log(`[WebSocket] Board state updated for board ${boardId}`);
+      }
+    });
+    
     socket.on('request-board-state', async (boardId) => {
       console.log('[WebSocket] Board state requested:', { 
         socketId: socket.id,
@@ -227,6 +297,33 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         socketId: socket.id,
         timestamp: new Date().toISOString()
       });
+      
+      // Handle cleanup for all boards this user was in
+      for (const [boardId, users] of boardUserCounts.entries()) {
+        if (users.has(socket.id)) {
+          users.delete(socket.id);
+          console.log(`[WebSocket] User ${socket.id} disconnected from board ${boardId}. Active users: ${users.size}`);
+          
+          // If no more users on this board, save the final snapshot
+          if (users.size === 0) {
+            console.log(`[WebSocket] No more users on board ${boardId} after disconnect. Saving final snapshot.`);
+            
+            // Check if we have a board state to save
+            if (boardStates.has(boardId)) {
+              // We'll save the snapshot asynchronously without blocking
+              saveFinalSnapshot(boardId, boardStates.get(boardId)!);
+              
+              // Clean up the temporary board state
+              boardStates.delete(boardId);
+            } else {
+              console.log(`[WebSocket] No board state to save for board ${boardId}`);
+            }
+            
+            // Clean up the user tracking for this board
+            boardUserCounts.delete(boardId);
+          }
+        }
+      }
     });
     
     // Log any other events
@@ -257,6 +354,28 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
   });
   
   return io;
+}
+
+// Helper function to save final snapshot asynchronously
+async function saveFinalSnapshot(boardId: string, boardState: string) {
+  try {
+    // Delete any existing snapshots for this board
+    await databaseService.deleteSnapshotsByBoardId(boardId);
+    
+    // Create new snapshot with the final board state
+    const snapshot = await databaseService.createSnapshot({
+      boardId,
+      data: boardState,
+    });
+    
+    console.log('[WebSocket] Final snapshot saved for board (async):', { 
+      boardId,
+      snapshotId: snapshot.id,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[WebSocket] Error saving final snapshot (async):', error);
+  }
 }
 
 export function getIO(): SocketIOServer | null {

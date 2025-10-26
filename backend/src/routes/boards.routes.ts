@@ -25,6 +25,12 @@ router.put('/:id', authMiddleware, (req, res) => boardController.updateBoard(req
 // DELETE /api/boards/:id - Delete a board
 router.delete('/:id', authMiddleware, (req, res) => boardController.deleteBoard(req, res));
 
+// GET /api/boards/:id/snapshots - Get all snapshots for a board
+router.get('/:id/snapshots', (req, res) => snapshotController.getSnapshots(req, res));
+
+// POST /api/boards/:id/snapshots - Create a new snapshot
+router.post('/:id/snapshots', authMiddleware, (req, res) => snapshotController.createSnapshot(req, res));
+
 // GET /api/boards/:id/collaborators - Get collaborators for a board
 router.get('/:id/collaborators', authMiddleware, (req, res) => boardController.getCollaborators(req, res));
 

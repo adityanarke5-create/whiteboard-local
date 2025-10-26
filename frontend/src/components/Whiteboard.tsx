@@ -52,6 +52,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
   const socketRef = useRef<Socket | null>(null);
   const isDrawingRef = useRef(false);
   const cursorRefs = useRef<Map<string, any>>(new Map()); // Store remote cursors
+  const stateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null); // Store interval ID
   
   // Refs to avoid stale closure issues
   const toolRef = useRef(activeTool);
@@ -125,8 +126,17 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       
       // Cleanup
       return () => {
-        socket.emit('leave-board', boardId);
-        socket.disconnect();
+        // Send current board state before leaving
+        if (fabricRef.current && socketRef.current) {
+          const boardState = JSON.stringify(fabricRef.current.toJSON());
+          socketRef.current.emit('update-board-state', {
+            boardId,
+            state: boardState
+          });
+        }
+        
+        socketRef.current?.emit('leave-board', boardId);
+        socketRef.current?.disconnect();
       };
     }
   }, [boardId, userId]);
@@ -157,6 +167,17 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           return this.getObjects().find((obj: any) => obj.id === id);
         };
       }
+
+      // Periodically send board state updates to backend (every 30 seconds)
+      stateUpdateIntervalRef.current = setInterval(() => {
+        if (fabricRef.current && socketRef.current) {
+          const boardState = JSON.stringify(fabricRef.current.toJSON());
+          socketRef.current.emit('update-board-state', {
+            boardId,
+            state: boardState
+          });
+        }
+      }, 30000); // 30 seconds
 
       // Set up pan and zoom functionality
       canvas.on('mouse:wheel', function(opt: any) {
@@ -325,6 +346,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         window.removeEventListener('resize', handleResize);
         if (fabricRef.current) {
           fabricRef.current.dispose();
+        }
+        // Clear the state update interval
+        if (stateUpdateIntervalRef.current) {
+          clearInterval(stateUpdateIntervalRef.current);
         }
       };
     }
