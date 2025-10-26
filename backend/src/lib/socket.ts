@@ -1,9 +1,11 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
+import { DatabaseService } from '../services/database.service';
 
 export type SocketServer = SocketIOServer;
 
 let io: SocketIOServer | null = null;
+const databaseService = new DatabaseService();
 
 export function initSocketIO(httpServer: HttpServer): SocketIOServer {
   if (io) return io;
@@ -22,7 +24,7 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       timestamp: new Date().toISOString()
     });
     
-    socket.on('join-board', (boardId) => {
+    socket.on('join-board', async (boardId) => {
       console.log('[WebSocket] User joining board:', { 
         socketId: socket.id,
         boardId,
@@ -31,6 +33,31 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       
       socket.join(boardId);
       console.log(`[WebSocket] User ${socket.id} joined board ${boardId}`);
+      
+      // Fetch the latest snapshot for this board and send it to the user
+      try {
+        const latestSnapshot = await databaseService.getLatestSnapshotByBoardId(boardId);
+        if (latestSnapshot) {
+          console.log(`[WebSocket] Sending latest snapshot to user ${socket.id}`);
+          socket.emit('board-snapshot', { 
+            data: latestSnapshot.data,
+            timestamp: latestSnapshot.timestamp
+          });
+        } else {
+          console.log(`[WebSocket] No snapshot found for board ${boardId}, sending empty board state`);
+          socket.emit('board-snapshot', { 
+            data: '{"objects":[],"background":"#f8fafc"}',
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error('[WebSocket] Error fetching board snapshot:', error);
+        // Send empty board state as fallback
+        socket.emit('board-snapshot', { 
+          data: '{"objects":[],"background":"#f8fafc"}',
+          timestamp: new Date().toISOString()
+        });
+      }
       
       // Emit confirmation back to client
       socket.emit('board-joined', { boardId, socketId: socket.id });
@@ -60,7 +87,7 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       });
     });
     
-    socket.on('canvas-action', (data) => {
+    socket.on('canvas-action', async (data) => {
       const { boardId, action, userId } = data;
       console.log('[WebSocket] Received canvas-action:', { 
         socketId: socket.id,
@@ -83,6 +110,34 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         return;
       }
       
+      // Validate action structure
+      if (!action.type) {
+        console.error('[WebSocket] Invalid action structure - missing type', { 
+          action,
+          socketId: socket.id,
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+      
+      try {
+        // Persist the action in the database
+        const actionRecord = await databaseService.createAction({
+          boardId,
+          userId,
+          action: JSON.stringify(action)
+        });
+        
+        console.log('[WebSocket] Action persisted to database:', { 
+          actionId: actionRecord.id,
+          boardId,
+          userId,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('[WebSocket] Error persisting action to database:', error);
+      }
+      
       // Broadcast to all other users in the same board
       const roomSize = io?.sockets.adapter.rooms.get(boardId)?.size || 0;
       console.log(`[WebSocket] Broadcasting canvas-update to board ${boardId} (room size: ${roomSize})`);
@@ -103,6 +158,39 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         actionType: action.type,
         timestamp: new Date().toISOString()
       });
+    });
+    
+    socket.on('request-board-state', async (boardId) => {
+      console.log('[WebSocket] Board state requested:', { 
+        socketId: socket.id,
+        boardId,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Fetch the latest snapshot for this board and send it to the user
+      try {
+        const latestSnapshot = await databaseService.getLatestSnapshotByBoardId(boardId);
+        if (latestSnapshot) {
+          console.log(`[WebSocket] Sending latest snapshot to user ${socket.id}`);
+          socket.emit('board-snapshot', { 
+            data: latestSnapshot.data,
+            timestamp: latestSnapshot.timestamp
+          });
+        } else {
+          console.log(`[WebSocket] No snapshot found for board ${boardId}, sending empty board state`);
+          socket.emit('board-snapshot', { 
+            data: '{"objects":[],"background":"#f8fafc"}',
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error('[WebSocket] Error fetching board snapshot:', error);
+        // Send empty board state as fallback
+        socket.emit('board-snapshot', { 
+          data: '{"objects":[],"background":"#f8fafc"}',
+          timestamp: new Date().toISOString()
+        });
+      }
     });
     
     socket.on('cursor-move', (data) => {

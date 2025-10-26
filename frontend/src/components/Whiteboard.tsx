@@ -2,6 +2,10 @@
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { AuthService } from '@/lib/auth-service';
+
+// Backend API base URL - using the dedicated backend server port
+const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 // Declare fabric as a global variable since we'll load it dynamically
 declare global {
@@ -96,7 +100,19 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       socket.on('canvas-update', (data) => {
         if (fabricRef.current) {
           // Apply the action to the canvas
-          applyRemoteAction(data.action);
+          applyRemoteAction(data);
+        }
+      });
+      
+      // Listen for complete board state from the server
+      socket.on('board-snapshot', (data) => {
+        if (fabricRef.current) {
+          console.log('[Whiteboard] Received board snapshot from server');
+          // Load the complete board state
+          fabricRef.current.loadFromJSON(data.data, () => {
+            fabricRef.current.renderAll();
+            console.log('[Whiteboard] Board snapshot loaded successfully');
+          });
         }
       });
       
@@ -128,9 +144,16 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
 
       fabricRef.current = canvas;
 
-      // Add getObjectById method to Fabric canvas prototype
+      // Add getObjectById method to Fabric canvas prototype if not already present
       if (!window.fabric.Canvas.prototype.getObjectById) {
         window.fabric.Canvas.prototype.getObjectById = function(id: string) {
+          return this.getObjects().find((obj: any) => obj.id === id);
+        };
+      }
+      
+      // Also add it to the current canvas instance to be safe
+      if (!canvas.getObjectById) {
+        canvas.getObjectById = function(id: string) {
           return this.getObjects().find((obj: any) => obj.id === id);
         };
       }
@@ -213,10 +236,15 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           return;
         }
         
+        // Ensure the object has an ID
+        if (!options.target.id) {
+          options.target.id = crypto.randomUUID();
+        }
+        
         // Send action to other users
         const action = {
           type: 'add',
-          object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling'])
+          object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
         };
         
         socketRef.current?.emit('canvas-action', {
@@ -234,11 +262,16 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           return;
         }
         
+        // Ensure the object has an ID
+        if (!options.target.id) {
+          options.target.id = crypto.randomUUID();
+        }
+        
         // Send action to other users
         const action = {
           type: 'modify',
           objectId: options.target.id,
-          object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling'])
+          object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
         };
         
         socketRef.current?.emit('canvas-action', {
@@ -253,6 +286,12 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
+          return;
+        }
+        
+        // Ensure the object has an ID
+        if (!options.target.id) {
+          // If the object doesn't have an ID, we can't sync it properly
           return;
         }
         
@@ -507,16 +546,28 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
   };
 
   // Apply remote actions to the canvas
-  const applyRemoteAction = (action: any) => {
+  const applyRemoteAction = (data: any) => {
     if (!fabricRef.current) return;
     
+    const { action, userId: actionUserId } = data;
     const canvas = fabricRef.current;
+    
+    // Don't process our own actions
+    if (actionUserId === userId) {
+      return;
+    }
     
     switch (action.type) {
       case 'add':
+        // Use enlivenObjects to properly deserialize Fabric objects
         window.fabric.util.enlivenObjects([action.object], (enlivenedObjects: any[]) => {
           enlivenedObjects.forEach((obj) => {
-            obj.remoteAction = true; // Mark as remote action to avoid infinite loop
+            // Ensure the object has a proper ID
+            if (!obj.id && action.object.id) {
+              obj.id = action.object.id;
+            }
+            // Mark as remote action to avoid infinite loop
+            obj.remoteAction = true;
             canvas.add(obj);
           });
           canvas.renderAll();
@@ -524,19 +575,22 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         break;
         
       case 'modify':
-        const object = canvas.getObjectById(action.objectId);
-        if (object) {
-          object.set(action.object);
-          object.remoteAction = true; // Mark as remote action to avoid infinite loop
+        const objectToModify = canvas.getObjectById(action.objectId);
+        if (objectToModify) {
+          // Mark as remote action to avoid infinite loop
+          objectToModify.remoteAction = true;
+          // Apply all properties from the action object
+          objectToModify.set(action.object);
           canvas.renderAll();
         }
         break;
         
       case 'remove':
-        const objToRemove = canvas.getObjectById(action.objectId);
-        if (objToRemove) {
-          objToRemove.remoteAction = true; // Mark as remote action to avoid infinite loop
-          canvas.remove(objToRemove);
+        const objectToRemove = canvas.getObjectById(action.objectId);
+        if (objectToRemove) {
+          // Mark as remote action to avoid infinite loop
+          objectToRemove.remoteAction = true;
+          canvas.remove(objectToRemove);
           canvas.renderAll();
         }
         break;

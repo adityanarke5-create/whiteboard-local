@@ -29,68 +29,9 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
   // Load board data when component mounts
   useEffect(() => {
-    const loadBoardData = async () => {
-      // Wait for boardId to be available
-      if (!boardId) {
-        console.log('[BoardPage] Board ID not available yet, skipping load');
-        return;
-      }
-      
-      console.log('[BoardPage] Loading board data:', { boardId });
-      
-      try {
-        const token = await AuthService.getCurrentToken();
-        if (!token) {
-          console.error('[BoardPage] No authentication token available');
-          return;
-        }
-        
-        console.log('[BoardPage] Fetching snapshots for board:', { boardId });
-        // Fetch the latest snapshot for this board
-        const snapshotResponse = await fetch(`${BACKEND_API_BASE_URL}/api/boards/${boardId}/snapshots`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        console.log('[BoardPage] Snapshot response status:', snapshotResponse.status);
-        
-        if (snapshotResponse.ok) {
-          const snapshots = await snapshotResponse.json();
-          console.log('[BoardPage] Snapshots retrieved:', { count: snapshots.length });
-          
-          if (snapshots.length > 0) {
-            const latestSnapshot = snapshots[0];
-            console.log('[BoardPage] Loading latest snapshot:', { 
-              snapshotId: latestSnapshot.id,
-              timestamp: latestSnapshot.timestamp
-            });
-            
-            // Load the snapshot data into the whiteboard
-            if (whiteboardRef.current) {
-              whiteboardRef.current.loadFromJSON(latestSnapshot.data);
-              setLastSaved(new Date(latestSnapshot.timestamp));
-              console.log('[BoardPage] Board data loaded successfully');
-            } else {
-              console.warn('[BoardPage] Whiteboard ref not available for loading');
-            }
-          } else {
-            console.log('[BoardPage] No snapshots found for board');
-          }
-        } else {
-          const errorText = await snapshotResponse.text();
-          console.error('[BoardPage] Failed to fetch snapshots:', { 
-            status: snapshotResponse.status,
-            statusText: snapshotResponse.statusText,
-            errorText: errorText
-          });
-        }
-      } catch (error) {
-        console.error('[BoardPage] Failed to load board data:', error);
-      }
-    };
-
-    loadBoardData();
+    // Note: Board data loading is now handled by the WebSocket connection
+    // The socket will send the latest board state when the user joins
+    console.log('[BoardPage] Board data loading handled by WebSocket connection');
   }, [boardId]);
 
   const handleShare = () => {
