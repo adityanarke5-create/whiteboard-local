@@ -27,6 +27,20 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const unwrappedParams = use(params);
   const boardId = unwrappedParams?.id;
 
+  // Listen for tool change events from keyboard shortcuts
+  useEffect(() => {
+    const handleToolChange = (event: CustomEvent) => {
+      console.log('[BoardPage] Tool change event received:', event.detail);
+      setActiveTool(event.detail);
+    };
+
+    window.addEventListener('toolChange', handleToolChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('toolChange', handleToolChange as EventListener);
+    };
+  }, []);
+
   // Load board data when component mounts
   useEffect(() => {
     // Note: Board data loading is now handled by the WebSocket connection

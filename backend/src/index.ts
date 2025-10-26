@@ -1,58 +1,60 @@
-import express from 'express';
-import http from 'http';
+import express, { Application, Request, Response } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
-import WebSocketServer from './lib/websocket-server';
+import { initSocketIO } from './lib/socket';
+import { CleanupService } from './services/cleanup.service';
 import boardsRouter from './routes/boards.routes';
 
-const app = express();
-const server = http.createServer(app);
+const app: Application = express();
+const server = createServer(app);
 
-// Middleware
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  credentials: true
-}));
-app.use(express.json());
+// Initialize Socket.IO
+initSocketIO(server);
 
-// Initialize WebSocket server
-const wsServer = WebSocketServer.getInstance();
-wsServer.attachServer(server);
+// Initialize cleanup service
+const cleanupService = new CleanupService();
+cleanupService.startPeriodicCleanup();
 
-// API Routes
-app.use('/api/boards', boardsRouter);
+// Add body parser middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+app.use(cors());
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// API routes would be added here
-// For now, we'll add a placeholder
-app.get('/api/test', (req, res) => {
-  res.status(200).json({ message: 'Backend API is running' });
+// Test endpoint
+app.get('/api/test', (req: Request, res: Response) => {
+  res.status(200).json({ message: 'API is working!', timestamp: new Date().toISOString() });
 });
 
-const port = process.env.PORT || 3001;
-server.listen(port, () => {
-  console.log(`> Backend ready on http://localhost:${port}`);
-  console.log(`> WebSocket server ready`);
-  
-  // Debug: Log all registered routes
-  console.log('[DEBUG] Registered routes:');
-  const printRoutes = (router: any, prefix = '') => {
-    router.stack.forEach((r: any) => {
-      if (r.route && r.route.path) {
-        console.log(`  ${Object.keys(r.route.methods).join(', ').toUpperCase()} ${prefix}${r.route.path}`);
-      } else if (r.name === 'router') {
-        const newPrefix = prefix + (r.regexp.source.replace('^\\', '').replace('\\?(?=\\/|$)', '').replace(/\//g, '/'));
-        console.log(`  Router middleware mounted at: ${prefix}${r.regexp.source}`);
-        if (r.handle && r.handle.stack) {
-          printRoutes(r.handle, prefix + r.regexp.source.replace('^\\', '').replace('\\?(?=\\/|$)', '').replace(/\//g, '/').replace(/\(.*\)/g, ':id'));
-        }
-      }
-    });
-  };
-  
-  printRoutes(app._router);
+// Register API routes
+app.use('/api/boards', boardsRouter);
+
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`> Backend ready on http://localhost:${PORT}`);
+  console.log('> WebSocket server ready');
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('[Server] SIGTERM received, shutting down gracefully');
+  cleanupService.stopPeriodicCleanup();
+  server.close(() => {
+    console.log('[Server] Process terminated');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('[Server] SIGINT received, shutting down gracefully');
+  cleanupService.stopPeriodicCleanup();
+  server.close(() => {
+    console.log('[Server] Process terminated');
+    process.exit(0);
+  });
 });

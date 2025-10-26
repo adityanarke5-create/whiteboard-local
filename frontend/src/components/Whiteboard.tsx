@@ -353,6 +353,39 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         } else if (isDrawingRef.current) {
           // Handle mouse move for shape tools
           handleMouseMove(opt);
+        } else {
+          // Handle cursor movement for real-time collaboration with smoothing
+          if (socketRef.current && boardId) {
+            const pointer = canvas.getPointer(opt.e);
+            
+            // Apply smoothing to cursor movement
+            if (lastPointRef.current) {
+              const distance = Math.sqrt(
+                Math.pow(pointer.x - lastPointRef.current.x, 2) + 
+                Math.pow(pointer.y - lastPointRef.current.y, 2)
+              );
+              
+              // Only send cursor update if distance exceeds threshold
+              if (distance >= smoothingThresholdRef.current) {
+                socketRef.current.emit('cursor-move', {
+                  boardId,
+                  userId,
+                  x: pointer.x,
+                  y: pointer.y
+                });
+                lastPointRef.current = { x: pointer.x, y: pointer.y };
+              }
+            } else {
+              // Send initial cursor position
+              socketRef.current.emit('cursor-move', {
+                boardId,
+                userId,
+                x: pointer.x,
+                y: pointer.y
+              });
+              lastPointRef.current = { x: pointer.x, y: pointer.y };
+            }
+          }
         }
       });
 
@@ -446,7 +479,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       });
       
       canvas.on('object:modified', (options: any) => {
-        console.log('[Whiteboard] Canvas object:modified event triggered', { options });
+        // Reduce logging for better performance
+        if (Math.random() < 0.01) { // Only log 1% of events
+          console.log('[Whiteboard] Canvas object:modified event triggered');
+        }
         
         if (!options.target) {
           console.warn('[Whiteboard] No target in object:modified event');
@@ -455,13 +491,19 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
-          console.log('[Whiteboard] Skipping remote action in object:modified event');
+          // Reduce logging for better performance
+          if (Math.random() < 0.01) { // Only log 1% of events
+            console.log('[Whiteboard] Skipping remote action in object:modified event');
+          }
           return;
         }
         
         // Ensure the object has an ID
         if (!options.target.id) {
-          console.log('[Whiteboard] Generating new ID for object');
+          // Reduce logging for better performance
+          if (Math.random() < 0.01) { // Only log 1% of events
+            console.log('[Whiteboard] Generating new ID for object');
+          }
           options.target.id = crypto.randomUUID();
         }
         
@@ -472,7 +514,14 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
         };
         
-        console.log('[Whiteboard] Sending canvas modify action:', { boardId, action, userId, userType: 'cognito' });
+        // Reduce logging for better performance
+        if (Math.random() < 0.01) { // Only log 1% of events
+          console.log('[Whiteboard] Sending canvas modify action:', { 
+            boardId, 
+            actionType: action.type,
+            userId
+          });
+        }
         
         if (socketRef.current) {
           socketRef.current.emit('canvas-action', {
@@ -481,14 +530,19 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             userId // This is the Cognito userId
           });
           
-          console.log('[Whiteboard] Canvas modify action sent to server');
+          // Reduce logging for better performance
+          if (Math.random() < 0.01) { // Only log 1% of events
+            console.log('[Whiteboard] Canvas modify action sent to server');
+          }
         } else {
           console.warn('[Whiteboard] Socket not available, cannot send canvas modify action');
         }
         
-        // Log confirmation when action is processed
+        // Log confirmation when action is processed (only occasionally)
         socketRef.current?.once('action-processed', (data) => {
-          console.log('[Whiteboard] Modify action processed confirmation received:', data);
+          if (Math.random() < 0.01) { // Only log 1% of events
+            console.log('[Whiteboard] Modify action processed confirmation received:', data);
+          }
         });
       });
       
@@ -611,6 +665,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
   
   // Ref to track the current shape being drawn
   const currentDrawingShapeRef = useRef<any>(null);
+  
+  // Refs for smoothing effect
+  const lastPointRef = useRef<{x: number, y: number} | null>(null);
+  const smoothingThresholdRef = useRef(2); // Minimum distance for point to be considered
 
   // Handle mouse down events
   const handleMouseDown = (options: any) => {
@@ -706,7 +764,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
     }
   };
 
-  // Handle mouse move events
+  // Handle mouse move events with smoothing
   const handleMouseMove = (options: any) => {
     if (!fabricRef.current) return;
     
@@ -720,6 +778,22 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
     if (!activeObject || !['rectangle', 'circle', 'line'].includes(tool)) return;
     
     const pointer = canvas.getPointer(options.e);
+    
+    // Apply smoothing by checking distance from last point
+    if (lastPointRef.current) {
+      const distance = Math.sqrt(
+        Math.pow(pointer.x - lastPointRef.current.x, 2) + 
+        Math.pow(pointer.y - lastPointRef.current.y, 2)
+      );
+      
+      // Only update if distance exceeds threshold for smoother drawing
+      if (distance < smoothingThresholdRef.current) {
+        return;
+      }
+    }
+    
+    // Update last point
+    lastPointRef.current = { x: pointer.x, y: pointer.y };
     
     switch (tool) {
       case 'rectangle':
@@ -750,6 +824,9 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
 
   // Handle mouse up events
   const handleMouseUp = () => {
+    // Reset last point for next drawing
+    lastPointRef.current = null;
+    
     // Check if we were drawing a shape
     if (isDrawingShapeRef.current && currentDrawingShapeRef.current && fabricRef.current) {
       const canvas = fabricRef.current;
@@ -929,10 +1006,34 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           if (objectToModify) {
             // Mark as remote action to avoid infinite loop
             objectToModify.remoteAction = true;
+            
+            // Log the modification for debugging
+            console.log('[Whiteboard] Applying modification to object:', {
+              objectId: action.objectId,
+              objectType: objectToModify.type,
+              properties: Object.keys(action.object || {})
+            });
+            
             // Apply all properties from the action object
-            objectToModify.set(action.object);
+            // We need to be more careful about which properties to apply
+            if (action.object) {
+              // Create a copy of the object data to avoid reference issues
+              const objectData = JSON.parse(JSON.stringify(action.object));
+              
+              // Remove properties that shouldn't be set directly
+              const { type, ...safeProperties } = objectData;
+              
+              // Apply the safe properties
+              objectToModify.set(safeProperties);
+            }
+            
+            // Force a complete re-render
             canvas.renderAll();
-            console.log('[Whiteboard] Remote modify action applied:', { objectId: action.objectId });
+            
+            // Reduce logging for better performance
+            if (Math.random() < 0.1) {
+              console.log('[Whiteboard] Remote modify action applied:', { objectId: action.objectId });
+            }
           } else {
             console.warn('[Whiteboard] Object to modify not found:', { objectId: action.objectId });
           }
@@ -1063,6 +1164,60 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       // Reset zoom with Ctrl+0 key
       if (e.ctrlKey && e.key === '0') {
         resetZoom();
+      }
+      
+      // Switch tools with keyboard shortcuts
+      switch (e.key) {
+        case 'v': // V key for selection tool
+        case 'V':
+          if (toolRef.current !== 'select') {
+            console.log('[Whiteboard] Switching to selection tool with V key');
+            // We need to update the parent component's state, so we'll emit a custom event
+            window.dispatchEvent(new CustomEvent('toolChange', { detail: 'select' }));
+          }
+          break;
+        case 'r': // R key for rectangle tool
+        case 'R':
+          if (toolRef.current !== 'rectangle') {
+            console.log('[Whiteboard] Switching to rectangle tool with R key');
+            window.dispatchEvent(new CustomEvent('toolChange', { detail: 'rectangle' }));
+          }
+          break;
+        case 'c': // C key for circle tool
+        case 'C':
+          if (toolRef.current !== 'circle') {
+            console.log('[Whiteboard] Switching to circle tool with C key');
+            window.dispatchEvent(new CustomEvent('toolChange', { detail: 'circle' }));
+          }
+          break;
+        case 'l': // L key for line tool
+        case 'L':
+          if (toolRef.current !== 'line') {
+            console.log('[Whiteboard] Switching to line tool with L key');
+            window.dispatchEvent(new CustomEvent('toolChange', { detail: 'line' }));
+          }
+          break;
+        case 't': // T key for text tool
+        case 'T':
+          if (toolRef.current !== 'text') {
+            console.log('[Whiteboard] Switching to text tool with T key');
+            window.dispatchEvent(new CustomEvent('toolChange', { detail: 'text' }));
+          }
+          break;
+        case 'p': // P key for pen tool
+        case 'P':
+          if (toolRef.current !== 'pen') {
+            console.log('[Whiteboard] Switching to pen tool with P key');
+            window.dispatchEvent(new CustomEvent('toolChange', { detail: 'pen' }));
+          }
+          break;
+        case 'e': // E key for eraser tool
+        case 'E':
+          if (toolRef.current !== 'eraser') {
+            console.log('[Whiteboard] Switching to eraser tool with E key');
+            window.dispatchEvent(new CustomEvent('toolChange', { detail: 'eraser' }));
+          }
+          break;
       }
     };
 

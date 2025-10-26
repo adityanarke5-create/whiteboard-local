@@ -415,4 +415,40 @@ export class DatabaseService {
       throw error;
     }
   }
+
+  // Add this new method to delete actions that occurred before the latest snapshot
+  async cleanupActionsBeforeLatestSnapshot(boardId: string): Promise<number> {
+    console.log('[DatabaseService] Cleaning up actions before latest snapshot', { boardId });
+    
+    try {
+      // Get the latest snapshot for this board
+      const latestSnapshot = await this.getLatestSnapshotByBoardId(boardId);
+      
+      if (!latestSnapshot) {
+        console.log('[DatabaseService] No snapshot found, skipping cleanup');
+        return 0;
+      }
+      
+      // Delete all actions that occurred before the snapshot timestamp
+      const result = await db.boardAction.deleteMany({
+        where: {
+          boardId: boardId,
+          timestamp: {
+            lt: latestSnapshot.timestamp
+          }
+        }
+      });
+      
+      console.log('[DatabaseService] Actions cleaned up successfully', { 
+        boardId, 
+        deletedCount: result.count,
+        snapshotTimestamp: latestSnapshot.timestamp
+      });
+      
+      return result.count;
+    } catch (error) {
+      console.error('[DatabaseService] Error cleaning up actions:', error);
+      throw error;
+    }
+  }
 }

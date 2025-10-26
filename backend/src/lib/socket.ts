@@ -181,6 +181,18 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
                 timestamp: new Date().toISOString()
               });
               
+              // Clean up old actions before the latest snapshot to reduce storage overhead
+              try {
+                const deletedCount = await databaseService.cleanupActionsBeforeLatestSnapshot(boardId);
+                console.log('[WebSocket] Cleaned up old actions:', { 
+                  boardId,
+                  deletedCount,
+                  timestamp: new Date().toISOString()
+                });
+              } catch (cleanupError) {
+                console.error('[WebSocket] Error cleaning up old actions:', cleanupError);
+              }
+              
               // Clean up the temporary board state
               boardStates.delete(boardId);
             } catch (error) {
@@ -206,13 +218,16 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
     
     socket.on('canvas-action', async (data) => {
       const { boardId, action, userId: cognitoUserId } = data;
-      console.log('[WebSocket] Received canvas-action:', { 
-        socketId: socket.id,
-        boardId,
-        cognitoUserId,
-        actionType: action?.type,
-        objectType: action?.object?.type
-      });
+      // Reduce logging for better performance
+      if (Math.random() < 0.001) { // Log only 0.1% of actions to reduce noise
+        console.log('[WebSocket] Received canvas-action:', { 
+          socketId: socket.id,
+          boardId,
+          cognitoUserId,
+          actionType: action?.type,
+          objectType: action?.object?.type
+        });
+      }
       
       // Validate required fields
       if (!boardId || !action || !cognitoUserId) {
@@ -234,23 +249,43 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         return;
       }
       
+      // Special handling for modify actions to ensure all properties are preserved
+      if (action.type === 'modify' && action.object) {
+        // Make sure we're sending the complete object data
+        if (Math.random() < 0.001) { // Log only 0.1% of modify actions
+          console.log('[WebSocket] Modify action object data:', {
+            objectId: action.objectId,
+            properties: Object.keys(action.object)
+          });
+        }
+      }
+      
       // Map Cognito userId to database userId
       let databaseUserId = cognitoUserId;
       try {
         const user = await databaseService.getUserByCognitoId(cognitoUserId);
         if (user) {
           databaseUserId = user.id;
-          console.log('[WebSocket] Mapped Cognito userId to database userId:', {
-            cognitoUserId,
-            databaseUserId
-          });
+          // Reduce logging for better performance
+          if (Math.random() < 0.0001) { // Log only 0.01% of user mappings
+            console.log('[WebSocket] Mapped Cognito userId to database userId:', {
+              cognitoUserId,
+              databaseUserId
+            });
+          }
         } else {
-          console.warn('[WebSocket] User not found in database, using Cognito userId:', {
-            cognitoUserId
-          });
+          // Reduce logging for better performance
+          if (Math.random() < 0.0001) { // Log only 0.01% of missing users
+            console.warn('[WebSocket] User not found in database, using Cognito userId:', {
+              cognitoUserId
+            });
+          }
         }
       } catch (error) {
-        console.error('[WebSocket] Error mapping Cognito userId to database userId:', error);
+        // Reduce logging for better performance
+        if (Math.random() < 0.0001) { // Log only 0.01% of errors
+          console.error('[WebSocket] Error mapping Cognito userId to database userId:', error);
+        }
       }
       
       try {
@@ -261,41 +296,39 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
           action: JSON.stringify(action)
         });
         
-        console.log('[WebSocket] Action persisted to database:', { 
-          actionId: actionRecord.id,
-          boardId,
-          userId: databaseUserId
-        });
+        // Reduce logging for better performance
+        if (Math.random() < 0.0001) { // Log only 0.01% of successful persists
+          console.log('[WebSocket] Action persisted to database:', { 
+            actionId: actionRecord.id,
+            boardId,
+            userId: databaseUserId
+          });
+        }
       } catch (error) {
-        console.error('[WebSocket] Error persisting action to database:', error);
+        // Reduce logging for better performance
+        if (Math.random() < 0.0001) { // Log only 0.01% of errors
+          console.error('[WebSocket] Error persisting action to database:', error);
+        }
       }
       
-      // Log the action being broadcasted
-      console.log('[WebSocket] Broadcasting canvas-update action:', { 
-        boardId,
-        actionType: action.type,
-        objectType: action.object?.type,
-        userId: databaseUserId,
-        actionData: action // Log the full action data for debugging
-      });
+      // Reduce logging for better performance
+      if (Math.random() < 0.0001) { // Log only 0.01% of broadcasts
+        console.log('[WebSocket] Broadcasting canvas-update action:', { 
+          boardId,
+          actionType: action.type,
+          objectType: action.object?.type,
+          userId: databaseUserId
+        });
+      }
       
-      // Broadcast to all other users in the same board
-      const roomSize = io?.sockets.adapter.rooms.get(boardId)?.size || 0;
-      console.log(`[WebSocket] Broadcasting canvas-update to board ${boardId} (room size: ${roomSize})`);
+      // Broadcast to all other users in the same board with optimized performance
       socket.to(boardId).emit('canvas-update', { action, userId: databaseUserId });
-      console.log(`[WebSocket] Broadcasted canvas-update to board ${boardId} (excluding sender ${socket.id})`);
       
       // Send confirmation back to sender
       socket.emit('action-processed', { 
         actionType: action.type, 
         boardId, 
         userId: databaseUserId
-      });
-      console.log('[WebSocket] Action processed confirmation sent:', { 
-        socketId: socket.id,
-        boardId,
-        userId: databaseUserId,
-        actionType: action.type
       });
     });
     

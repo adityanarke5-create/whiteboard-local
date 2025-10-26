@@ -49,28 +49,36 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
       
       if (!token) {
         console.warn('[SharingModal] No authentication token available');
+        setError('Authentication required. Please sign in again.');
+        return;
+      }
+
+      // Check if boardId is valid
+      if (!boardId || typeof boardId !== 'string') {
+        console.error('[SharingModal] Invalid board ID:', boardId);
+        setError('Invalid board ID');
         return;
       }
 
       const url = `${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators`;
       console.log('[SharingModal] Making request to:', url);
-      console.log('[SharingModal] Request headers:', {
-        'Authorization': `Bearer ${token.substring(0, 20)}...`
-      });
       
+      // Add more detailed error handling
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        // Add timeout and error handling
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
       console.log('[SharingModal] Collaborators response status:', response.status);
-      console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
       
       if (response.ok) {
         const data = await response.json();
         console.log('[SharingModal] Collaborators retrieved:', data);
         setCollaborators(data);
+        setError(''); // Clear any previous errors
       } else {
         const errorText = await response.text();
         console.error('[SharingModal] Failed to fetch collaborators:', {
@@ -78,11 +86,29 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
           statusText: response.statusText,
           errorText
         });
-        setError(`Failed to fetch collaborators: ${response.statusText} - ${errorText}`);
+        
+        // Handle specific error cases
+        if (response.status === 401) {
+          setError('Authentication failed. Please sign in again.');
+        } else if (response.status === 403) {
+          setError('Access denied. You may not have permission to view collaborators.');
+        } else if (response.status === 404) {
+          setError('Board not found.');
+        } else {
+          setError(`Failed to fetch collaborators: ${response.statusText} - ${errorText}`);
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[SharingModal] Failed to fetch collaborators:', err);
-      setError('Failed to fetch collaborators');
+      
+      // Handle specific error types
+      if (err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+      } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('Failed to fetch collaborators: ' + err.message);
+      }
     }
   };
 
@@ -127,7 +153,8 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ email, role })
+        body: JSON.stringify({ email, role }),
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
       console.log('[SharingModal] Add collaborator response status:', response.status);
@@ -145,11 +172,31 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
           statusText: response.statusText,
           errorText
         });
-        setError(`Failed to add collaborator: ${response.statusText} - ${errorText}`);
+        
+        // Handle specific error cases
+        if (response.status === 401) {
+          setError('Authentication failed. Please sign in again.');
+        } else if (response.status === 403) {
+          setError('Access denied. Only board owners can add collaborators.');
+        } else if (response.status === 404) {
+          setError('Board not found.');
+        } else if (response.status === 400) {
+          setError(`Invalid request: ${errorText}`);
+        } else {
+          setError(`Failed to add collaborator: ${response.statusText} - ${errorText}`);
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[SharingModal] Failed to add collaborator:', err);
-      setError('Failed to add collaborator');
+      
+      // Handle specific error types
+      if (err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+      } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('Failed to add collaborator: ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -181,7 +228,8 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
       console.log('[SharingModal] Remove collaborator response status:', response.status);
@@ -198,11 +246,29 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
           statusText: response.statusText,
           errorText
         });
-        setError(`Failed to remove collaborator: ${response.statusText} - ${errorText}`);
+        
+        // Handle specific error cases
+        if (response.status === 401) {
+          setError('Authentication failed. Please sign in again.');
+        } else if (response.status === 403) {
+          setError('Access denied. Only board owners can remove collaborators.');
+        } else if (response.status === 404) {
+          setError('Board or collaborator not found.');
+        } else {
+          setError(`Failed to remove collaborator: ${response.statusText} - ${errorText}`);
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[SharingModal] Failed to remove collaborator:', err);
-      setError('Failed to remove collaborator');
+      
+      // Handle specific error types
+      if (err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+      } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('Failed to remove collaborator: ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
