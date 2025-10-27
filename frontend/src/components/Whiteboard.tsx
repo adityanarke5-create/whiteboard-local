@@ -502,11 +502,16 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         };
         
         // Ensure the ID is properly included in the serialized object
+        // Fabric.js toJSON method doesn't always include the id property, so we need to manually ensure it's there
         if (!action.object.id && options.target.id) {
           action.object.id = options.target.id;
-          console.log('[Whiteboard] Manually added ID to serialized object', { 
-            objectId: action.object.id
-          });
+        }
+        
+        // Double-check that the ID is included
+        if (!action.object.id) {
+          // Generate a new ID if none exists
+          action.object.id = crypto.randomUUID();
+          options.target.id = action.object.id;
         }
         
         console.log('[Whiteboard] Object toJSON result for add action:', { 
@@ -628,9 +633,6 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         // Ensure the ID is properly included in the serialized object
         if (!action.object.id && options.target.id) {
           action.object.id = options.target.id;
-          console.log('[Whiteboard] Manually added ID to serialized object (modify)', { 
-            objectId: action.object.id
-          });
         }
         
         console.log('[Whiteboard] Object toJSON result for modify action:', { 

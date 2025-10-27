@@ -330,10 +330,11 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         // Include temporaryId and serverId mapping for 'add' actions
         if (action.type === 'add' && action.object?.id) {
           response.temporaryId = action.object.id;
-          response.serverId = actionRecord.id; // Use the database ID as the server ID
+          // Use the object's ID as the server ID, not the action record ID
+          response.serverId = action.object.id;
           console.log('[WebSocket] Adding ID mapping to response for add action', { 
             temporaryId: action.object.id,
-            serverId: actionRecord.id
+            serverId: action.object.id
           });
         } else {
           console.log('[WebSocket] No ID mapping added to response', {

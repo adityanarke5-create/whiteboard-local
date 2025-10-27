@@ -37,7 +37,7 @@ export class AuthLogger {
     }
 
     // Also log to console in development
-    console.log(`[AuthLogger] ${event}`, data);
+    // console.log(`[AuthLogger] ${event}`, data);
   }
 
   error(event: string, error: any) {
@@ -61,7 +61,7 @@ export class AuthLogger {
     }
 
     // Also log to console
-    console.error(`[AuthLogger] ${event}`, logEntry.error);
+    // console.error(`[AuthLogger] ${event}`, logEntry.error);
   }
 
   getLogs(): any[] {
