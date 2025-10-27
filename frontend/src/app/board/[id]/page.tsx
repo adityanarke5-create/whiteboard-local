@@ -30,7 +30,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   // Listen for tool change events from keyboard shortcuts
   useEffect(() => {
     const handleToolChange = (event: CustomEvent) => {
-      console.log('[BoardPage] Tool change event received:', event.detail);
+      // console.log('[BoardPage] Tool change event received:', event.detail);
       setActiveTool(event.detail);
     };
 
@@ -45,7 +45,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     // Note: Board data loading is now handled by the WebSocket connection
     // The socket will send the latest board state when the user joins
-    console.log('[BoardPage] Board data loading handled by WebSocket connection');
+    // console.log('[BoardPage] Board data loading handled by WebSocket connection');
   }, [boardId]);
 
   const handleShare = () => {
@@ -53,17 +53,17 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   };
 
   const handleToolChange = (tool: string) => {
-    console.log('[BoardPage] Tool changed:', { tool, previousTool: activeTool });
+    // console.log('[BoardPage] Tool changed:', { tool, previousTool: activeTool });
     setActiveTool(tool);
   };
 
   const handleExport = async (format: string) => {
-    console.log('[BoardPage] Export initiated:', { format });
+    // console.log('[BoardPage] Export initiated:', { format });
     
     if (whiteboardRef.current) {
       const data = whiteboardRef.current.exportAs(format);
       if (data) {
-        console.log('[BoardPage] Export data generated, creating download link');
+        // console.log('[BoardPage] Export data generated, creating download link');
         // Create download link
         const link = document.createElement('a');
         link.href = data;
@@ -71,34 +71,34 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        console.log('[BoardPage] Export completed');
+        // console.log('[BoardPage] Export completed');
       } else {
-        console.warn('[BoardPage] No export data generated');
+        // console.warn('[BoardPage] No export data generated');
       }
     } else {
-      console.warn('[BoardPage] Whiteboard ref not available for export');
+      // console.warn('[BoardPage] Whiteboard ref not available for export');
     }
   };
 
   const handleClear = () => {
-    console.log('[BoardPage] Clear canvas initiated');
+    // console.log('[BoardPage] Clear canvas initiated');
     if (whiteboardRef.current && confirm('Are you sure you want to clear the entire canvas?')) {
       whiteboardRef.current.clearCanvas();
-      console.log('[BoardPage] Canvas cleared');
+      // console.log('[BoardPage] Canvas cleared');
     }
   };
 
   const handleManualSave = async () => {
-    console.log('[BoardPage] Manual save initiated');
+    // console.log('[BoardPage] Manual save initiated');
     
     // Validate boardId before proceeding
     if (!boardId) {
-      console.warn('[BoardPage] Cannot save - board ID not available');
+      // console.warn('[BoardPage] Cannot save - board ID not available');
       return;
     }
     
     if (!whiteboardRef.current) {
-      console.warn('[BoardPage] Cannot save - whiteboard ref not available');
+      // console.warn('[BoardPage] Cannot save - whiteboard ref not available');
       return;
     }
     
@@ -106,17 +106,17 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     const boardData = whiteboardRef.current.exportAs('json');
     
     if (boardData) {
-      console.log('[BoardPage] Board data exported for saving');
+      // console.log('[BoardPage] Board data exported for saving');
       
       try {
         const token = await AuthService.getCurrentToken();
         if (!token) {
-          console.error('[BoardPage] No authentication token available for saving');
+          // console.error('[BoardPage] No authentication token available for saving');
           setIsAutoSaving(false);
           return;
         }
         
-        console.log('[BoardPage] Sending save request to backend', { boardId });
+        // console.log('[BoardPage] Sending save request to backend', { boardId });
         const response = await fetch(`${BACKEND_API_BASE_URL}/api/boards/${boardId}/snapshots`, {
           method: 'POST',
           headers: {
@@ -126,24 +126,24 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           body: JSON.stringify({ data: boardData }),
         });
         
-        console.log('[BoardPage] Save response status:', response.status);
+        // console.log('[BoardPage] Save response status:', response.status);
         
         if (response.ok) {
           setLastSaved(new Date());
-          console.log('[BoardPage] Board saved successfully');
+          // console.log('[BoardPage] Board saved successfully');
         } else {
           const errorText = await response.text();
-          console.error('[BoardPage] Failed to save board:', { 
-            status: response.status,
-            statusText: response.statusText,
-            errorText: errorText
-          });
+          // console.error('[BoardPage] Failed to save board:', { 
+          //   status: response.status,
+          //   statusText: response.statusText,
+          //   errorText: errorText
+          // });
         }
       } catch (error) {
-        console.error('[BoardPage] Failed to save board:', error);
+        // console.error('[BoardPage] Failed to save board:', error);
       }
     } else {
-      console.warn('[BoardPage] No board data to save');
+      // console.warn('[BoardPage] No board data to save');
     }
     
     setIsAutoSaving(false);
@@ -153,18 +153,18 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     // Don't set up auto-save if boardId is not available
     if (!boardId) {
-      console.log('[BoardPage] Board ID not available, skipping auto-save setup');
+      // console.log('[BoardPage] Board ID not available, skipping auto-save setup');
       return;
     }
     
-    console.log('[BoardPage] Setting up auto-save interval', { boardId });
+    // console.log('[BoardPage] Setting up auto-save interval', { boardId });
     
     const autoSaveInterval = setInterval(async () => {
-      console.log('[BoardPage] Auto-save triggered');
+      // console.log('[BoardPage] Auto-save triggered');
       
       // Double-check that boardId is still available
       if (!boardId) {
-        console.log('[BoardPage] Board ID not available during auto-save, skipping');
+        // console.log('[BoardPage] Board ID not available during auto-save, skipping');
         return;
       }
       
@@ -173,17 +173,17 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         const boardData = whiteboardRef.current.exportAs('json');
         
         if (boardData) {
-          console.log('[BoardPage] Board data exported for auto-save', { boardId });
+          // console.log('[BoardPage] Board data exported for auto-save', { boardId });
           
           try {
             const token = await AuthService.getCurrentToken();
             if (!token) {
-              console.error('[BoardPage] No authentication token available for auto-save');
+              // console.error('[BoardPage] No authentication token available for auto-save');
               setIsAutoSaving(false);
               return;
             }
             
-            console.log('[BoardPage] Sending auto-save request to backend', { boardId });
+            // console.log('[BoardPage] Sending auto-save request to backend', { boardId });
             const response = await fetch(`${BACKEND_API_BASE_URL}/api/boards/${boardId}/snapshots`, {
               method: 'POST',
               headers: {
@@ -193,34 +193,34 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               body: JSON.stringify({ data: boardData }),
             });
             
-            console.log('[BoardPage] Auto-save response status:', response.status);
+            // console.log('[BoardPage] Auto-save response status:', response.status);
             
             if (response.ok) {
               setLastSaved(new Date());
-              console.log('[BoardPage] Board auto-saved successfully');
+              // console.log('[BoardPage] Board auto-saved successfully');
             } else {
               const errorText = await response.text();
-              console.error('[BoardPage] Failed to auto-save board:', { 
-                status: response.status,
-                statusText: response.statusText,
-                errorText: errorText
-              });
+              // console.error('[BoardPage] Failed to auto-save board:', { 
+              //   status: response.status,
+              //   statusText: response.statusText,
+              //   errorText: errorText
+              // });
             }
           } catch (error) {
-            console.error('[BoardPage] Failed to auto-save board:', error);
+            // console.error('[BoardPage] Failed to auto-save board:', error);
           }
         } else {
-          console.log('[BoardPage] No board data to auto-save');
+          // console.log('[BoardPage] No board data to auto-save');
         }
         
         setIsAutoSaving(false);
       } else {
-        console.log('[BoardPage] Whiteboard ref not available for auto-save');
+        // console.log('[BoardPage] Whiteboard ref not available for auto-save');
       }
     }, 30000); // Auto-save every 30 seconds
 
     return () => {
-      console.log('[BoardPage] Clearing auto-save interval');
+      // console.log('[BoardPage] Clearing auto-save interval');
       clearInterval(autoSaveInterval);
     };
   }, [boardId]); // Only re-run when boardId changes
@@ -347,7 +347,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           boardId={boardId || ''}
           isOpen={isSharingModalOpen}
           onClose={() => {
-            console.log('[BoardPage] Closing sharing modal');
+            // console.log('[BoardPage] Closing sharing modal');
             setIsSharingModalOpen(false);
           }}
           onCollaboratorsChange={() => {

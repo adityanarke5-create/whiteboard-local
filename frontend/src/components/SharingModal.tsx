@@ -23,8 +23,8 @@ interface SharingModalProps {
 const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export default function SharingModal({ boardId, isOpen, onClose, onCollaboratorsChange }: SharingModalProps) {
-  console.log('[SharingModal] Component rendered with props:', { boardId, isOpen });
-  console.log('[SharingModal] BACKEND_API_BASE_URL:', BACKEND_API_BASE_URL);
+  // console.log('[SharingModal] Component rendered with props:', { boardId, isOpen });
+  // console.log('[SharingModal] BACKEND_API_BASE_URL:', BACKEND_API_BASE_URL);
   
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('editor');
@@ -35,7 +35,7 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
 
   // Fetch collaborators when modal opens
   useEffect(() => {
-    console.log('[SharingModal] useEffect triggered', { isOpen, boardId });
+    // console.log('[SharingModal] useEffect triggered', { isOpen, boardId });
     if (isOpen) {
       fetchCollaborators();
     }
@@ -43,25 +43,25 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
 
   const fetchCollaborators = async () => {
     try {
-      console.log('[SharingModal] Fetching collaborators for board:', boardId);
+      // console.log('[SharingModal] Fetching collaborators for board:', boardId);
       const token = await AuthService.getCurrentToken();
-      console.log('[SharingModal] Current token available:', !!token);
+      // console.log('[SharingModal] Current token available:', !!token);
       
       if (!token) {
-        console.warn('[SharingModal] No authentication token available');
+        // console.warn('[SharingModal] No authentication token available');
         setError('Authentication required. Please sign in again.');
         return;
       }
 
       // Check if boardId is valid
       if (!boardId || typeof boardId !== 'string') {
-        console.error('[SharingModal] Invalid board ID:', boardId);
+        // console.error('[SharingModal] Invalid board ID:', boardId);
         setError('Invalid board ID');
         return;
       }
 
       const url = `${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators`;
-      console.log('[SharingModal] Making request to:', url);
+      // console.log('[SharingModal] Making request to:', url);
       
       // Add more detailed error handling
       const response = await fetch(url, {
@@ -72,20 +72,20 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
-      console.log('[SharingModal] Collaborators response status:', response.status);
+      // console.log('[SharingModal] Collaborators response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('[SharingModal] Collaborators retrieved:', data);
+        // console.log('[SharingModal] Collaborators retrieved:', data);
         setCollaborators(data);
         setError(''); // Clear any previous errors
       } else {
         const errorText = await response.text();
-        console.error('[SharingModal] Failed to fetch collaborators:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
+        // console.error('[SharingModal] Failed to fetch collaborators:', {
+        //   status: response.status,
+        //   statusText: response.statusText,
+        //   errorText
+        // });
         
         // Handle specific error cases
         if (response.status === 401) {
@@ -99,7 +99,7 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         }
       }
     } catch (err: any) {
-      console.error('[SharingModal] Failed to fetch collaborators:', err);
+      // console.error('[SharingModal] Failed to fetch collaborators:', err);
       
       // Handle specific error types
       if (err.name === 'AbortError') {
@@ -114,15 +114,15 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
 
   const handleAddCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[SharingModal] handleAddCollaborator called', { boardId, email, role });
+    // console.log('[SharingModal] handleAddCollaborator called', { boardId, email, role });
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      console.log('[SharingModal] Adding collaborator:', { email, role, boardId });
+      // console.log('[SharingModal] Adding collaborator:', { email, role, boardId });
       const token = await AuthService.getCurrentToken();
-      console.log('[SharingModal] Current token available:', !!token);
+      // console.log('[SharingModal] Current token available:', !!token);
       
       if (!token) {
         setError('Authentication required');
@@ -131,21 +131,21 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
       }
 
       // Additional debugging
-      console.log('[SharingModal] Board ID type and value:', typeof boardId, boardId);
+      // console.log('[SharingModal] Board ID type and value:', typeof boardId, boardId);
       if (!boardId) {
-        console.error('[SharingModal] Board ID is missing!');
+        // console.error('[SharingModal] Board ID is missing!');
         setError('Board ID is missing');
         setLoading(false);
         return;
       }
 
       const url = `${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators`;
-      console.log('[SharingModal] Making POST request to:', url);
-      console.log('[SharingModal] Request body:', { email, role });
-      console.log('[SharingModal] Request headers:', {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.substring(0, 20)}...`
-      });
+      // console.log('[SharingModal] Making POST request to:', url);
+      // console.log('[SharingModal] Request body:', { email, role });
+      // console.log('[SharingModal] Request headers:', {
+      //   'Content-Type': 'application/json',
+      //   'Authorization': `Bearer ${token.substring(0, 20)}...`
+      // });
 
       const response = await fetch(url, {
         method: 'POST',
@@ -157,8 +157,8 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
-      console.log('[SharingModal] Add collaborator response status:', response.status);
-      console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
+      // console.log('[SharingModal] Add collaborator response status:', response.status);
+      // console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
       
       if (response.ok) {
         setSuccess('Collaborator added successfully');
@@ -167,11 +167,11 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         onCollaboratorsChange();
       } else {
         const errorText = await response.text();
-        console.error('[SharingModal] Failed to add collaborator:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
+        // console.error('[SharingModal] Failed to add collaborator:', {
+        //   status: response.status,
+        //   statusText: response.statusText,
+        //   errorText
+        // });
         
         // Handle specific error cases
         if (response.status === 401) {
@@ -187,7 +187,7 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         }
       }
     } catch (err: any) {
-      console.error('[SharingModal] Failed to add collaborator:', err);
+      // console.error('[SharingModal] Failed to add collaborator:', err);
       
       // Handle specific error types
       if (err.name === 'AbortError') {
@@ -208,9 +208,9 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
     setSuccess('');
 
     try {
-      console.log('[SharingModal] Removing collaborator:', { collaboratorId, boardId });
+      // console.log('[SharingModal] Removing collaborator:', { collaboratorId, boardId });
       const token = await AuthService.getCurrentToken();
-      console.log('[SharingModal] Current token available:', !!token);
+      // console.log('[SharingModal] Current token available:', !!token);
       
       if (!token) {
         setError('Authentication required');
@@ -219,10 +219,10 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
       }
 
       const url = `${BACKEND_API_BASE_URL}/api/boards/${boardId}/collaborators/${collaboratorId}`;
-      console.log('[SharingModal] Making DELETE request to:', url);
-      console.log('[SharingModal] Request headers:', {
-        'Authorization': `Bearer ${token.substring(0, 20)}...`
-      });
+      // console.log('[SharingModal] Making DELETE request to:', url);
+      // console.log('[SharingModal] Request headers:', {
+      //   'Authorization': `Bearer ${token.substring(0, 20)}...`
+      // });
 
       const response = await fetch(url, {
         method: 'DELETE',
@@ -232,8 +232,8 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
-      console.log('[SharingModal] Remove collaborator response status:', response.status);
-      console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
+      // console.log('[SharingModal] Remove collaborator response status:', response.status);
+      // console.log('[SharingModal] Response headers:', [...response.headers.entries()]);
       
       if (response.ok) {
         setSuccess('Collaborator removed successfully');
@@ -241,11 +241,11 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         onCollaboratorsChange();
       } else {
         const errorText = await response.text();
-        console.error('[SharingModal] Failed to remove collaborator:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
+        // console.error('[SharingModal] Failed to remove collaborator:', {
+        //   status: response.status,
+        //   statusText: response.statusText,
+        //   errorText
+        // });
         
         // Handle specific error cases
         if (response.status === 401) {
@@ -259,7 +259,7 @@ export default function SharingModal({ boardId, isOpen, onClose, onCollaborators
         }
       }
     } catch (err: any) {
-      console.error('[SharingModal] Failed to remove collaborator:', err);
+      // console.error('[SharingModal] Failed to remove collaborator:', err);
       
       // Handle specific error types
       if (err.name === 'AbortError') {

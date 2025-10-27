@@ -55,6 +55,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
   const cursorRefs = useRef<Map<string, any>>(new Map()); // Store remote cursors
   const stateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null); // Store interval ID
   
+  // Operation queue for objects with temporary IDs
+  const operationQueueRef = useRef<Array<{action: any, objectId: string}>>([]);
+  const tempIdToServerIdMapRef = useRef<Map<string, string>>(new Map());
+  
   // Refs to avoid stale closure issues
   const toolRef = useRef(activeTool);
   const colorRef = useRef(strokeColor);
@@ -192,6 +196,31 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       // Listen for action processed confirmation
       socket.on('action-processed', (data) => {
         console.log('[WebSocket] Action processed confirmation received:', data);
+        
+        // Handle temporary ID mapping for 'add' actions
+        if (data.actionType === 'add' && data.temporaryId && data.serverId) {
+          console.log('[WebSocket] Processing temporary ID mapping for add action', { 
+            temporaryId: data.temporaryId,
+            serverId: data.serverId
+          });
+          
+          // Map the temporary ID to the server ID
+          tempIdToServerIdMapRef.current.set(data.temporaryId, data.serverId);
+          console.log('[WebSocket] Temporary ID mapped to server ID', { 
+            temporaryId: data.temporaryId,
+            serverId: data.serverId,
+            mapSize: tempIdToServerIdMapRef.current.size
+          });
+          
+          // Process any queued operations for this object
+          processOperationQueue(data.temporaryId, data.serverId);
+        } else {
+          console.log('[WebSocket] Action processed (not an add action or no ID mapping needed)', { 
+            actionType: data.actionType,
+            hasTemporaryId: !!data.temporaryId,
+            hasServerId: !!data.serverId
+          });
+        }
       });
       
       // Listen for complete board state from the server
@@ -211,11 +240,15 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       
       // Listen for canvas updates from other users
       socket.on('canvas-update', (data) => {
+        console.log('[Whiteboard] Received canvas update from server:', {
+          actionType: data.action?.type,
+          userId: data.userId,
+          isOwnAction: data.userId === userId,
+          objectId: data.action?.objectId || data.action?.object?.id
+        });
+        
         if (fabricRef.current) {
-          console.log('[Whiteboard] Received canvas update:', {
-            actionType: data.action?.type,
-            userId: data.userId
-          });
+          console.log('[Whiteboard] Applying canvas update to local canvas');
           // Apply the action to the canvas
           applyRemoteAction(data);
         } else {
@@ -403,10 +436,11 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
 
       // Handle canvas events for real-time collaboration
       canvas.on('object:added', (options: any) => {
-        // Only log occasionally to reduce noise
-        if (Math.random() < 0.1) {
-          console.log('[Whiteboard] Canvas object:added event triggered');
-        }
+        console.log('[Whiteboard] Canvas object:added event triggered', { 
+          targetId: options.target?.id,
+          targetType: options.target?.type,
+          hasTarget: !!options.target
+        });
         
         if (!options.target) {
           console.warn('[Whiteboard] No target in object:added event');
@@ -415,29 +449,50 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
-          // Only log occasionally to reduce noise
-          if (Math.random() < 0.1) {
-            console.log('[Whiteboard] Skipping remote action in object:added event');
-          }
+          console.log('[Whiteboard] Skipping remote action in object:added event', { 
+            targetId: options.target.id,
+            targetType: options.target.type
+          });
           return;
         }
         
         // Skip if we're currently drawing a shape (to prevent sending incomplete shapes)
         if (isDrawingShapeRef.current) {
-          // Only log occasionally to reduce noise
-          if (Math.random() < 0.1) {
-            console.log('[Whiteboard] Skipping object:added event during shape drawing');
-          }
+          console.log('[Whiteboard] Skipping object:added event during shape drawing');
           return;
         }
         
         // Ensure the object has an ID
         if (!options.target.id) {
-          // Only log occasionally to reduce noise
-          if (Math.random() < 0.1) {
-            console.log('[Whiteboard] Generating new ID for object');
-          }
+          console.log('[Whiteboard] Generating new ID for object in add event');
           options.target.id = crypto.randomUUID();
+        }
+        
+        console.log('[Whiteboard] Object before serialization', { 
+          objectId: options.target.id,
+          objectType: options.target.type,
+          hasIdProperty: !!options.target.id
+        });
+        
+        // Check if the object has a temporary ID (prefixed with 'temp_' or is a UUID)
+        const objectId = options.target.id;
+        const isTemporaryId = objectId.startsWith('temp_') || /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(objectId);
+        
+        console.log('[Whiteboard] Object addition details', { 
+          objectId,
+          isTemporaryId,
+          hasMapping: isTemporaryId ? tempIdToServerIdMapRef.current.has(objectId) : null
+        });
+        
+        // If it's a temporary ID, queue the operation until we get the server ID
+        if (isTemporaryId && tempIdToServerIdMapRef.current.has(objectId)) {
+          // We already have the server ID, use it
+          const serverId = tempIdToServerIdMapRef.current.get(objectId);
+          console.log('[Whiteboard] Using mapped server ID for addition', { 
+            temporaryId: objectId,
+            serverId
+          });
+          options.target.id = serverId;
         }
         
         // Send action to other users
@@ -446,14 +501,26 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
         };
         
-        // Only log occasionally to reduce noise
-        if (Math.random() < 0.1) {
-          console.log('[Whiteboard] Sending canvas action:', { 
-            boardId, 
-            actionType: action.type,
-            userId
+        // Ensure the ID is properly included in the serialized object
+        if (!action.object.id && options.target.id) {
+          action.object.id = options.target.id;
+          console.log('[Whiteboard] Manually added ID to serialized object', { 
+            objectId: action.object.id
           });
         }
+        
+        console.log('[Whiteboard] Object toJSON result for add action:', { 
+          objectKeys: Object.keys(action.object),
+          objectIdInObject: action.object.id,
+          fullObject: action.object
+        });
+        
+        console.log('[Whiteboard] Sending canvas add action to server:', { 
+          boardId, 
+          actionType: action.type,
+          objectId: action.object?.id,
+          userId
+        });
         
         if (socketRef.current) {
           socketRef.current.emit('canvas-action', {
@@ -462,27 +529,23 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             userId // This is the Cognito userId
           });
           
-          // Only log occasionally to reduce noise
-          if (Math.random() < 0.1) {
-            console.log('[Whiteboard] Canvas action sent to server');
-          }
+          console.log('[Whiteboard] Canvas add action sent to server successfully');
         } else {
           console.warn('[Whiteboard] Socket not available, cannot send canvas action');
         }
         
-        // Log confirmation when action is processed (only occasionally)
+        // Log confirmation when action is processed
         socketRef.current?.once('action-processed', (data) => {
-          if (Math.random() < 0.1) {
-            console.log('[Whiteboard] Action processed confirmation received');
-          }
+          console.log('[Whiteboard] Add action processed confirmation received:', data);
         });
       });
       
       canvas.on('object:modified', (options: any) => {
-        // Reduce logging for better performance
-        if (Math.random() < 0.01) { // Only log 1% of events
-          console.log('[Whiteboard] Canvas object:modified event triggered');
-        }
+        console.log('[Whiteboard] Canvas object:modified event triggered', { 
+          targetId: options.target?.id,
+          targetType: options.target?.type,
+          hasTarget: !!options.target
+        });
         
         if (!options.target) {
           console.warn('[Whiteboard] No target in object:modified event');
@@ -491,20 +554,68 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
-          // Reduce logging for better performance
-          if (Math.random() < 0.01) { // Only log 1% of events
-            console.log('[Whiteboard] Skipping remote action in object:modified event');
-          }
+          console.log('[Whiteboard] Skipping remote action in object:modified event', { 
+            targetId: options.target.id,
+            targetType: options.target.type
+          });
           return;
         }
         
         // Ensure the object has an ID
         if (!options.target.id) {
-          // Reduce logging for better performance
-          if (Math.random() < 0.01) { // Only log 1% of events
-            console.log('[Whiteboard] Generating new ID for object');
-          }
+          console.log('[Whiteboard] Generating new ID for object in modify event');
           options.target.id = crypto.randomUUID();
+        }
+        
+        console.log('[Whiteboard] Object before serialization (modify)', { 
+          objectId: options.target.id,
+          objectType: options.target.type,
+          hasIdProperty: !!options.target.id
+        });
+        
+        // Check if the object has a temporary ID (prefixed with 'temp_' or is a UUID)
+        const objectId = options.target.id;
+        const isTemporaryId = objectId.startsWith('temp_') || /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(objectId);
+        
+        console.log('[Whiteboard] Object modification details', { 
+          objectId,
+          isTemporaryId,
+          hasMapping: isTemporaryId ? tempIdToServerIdMapRef.current.has(objectId) : null,
+          queueSize: operationQueueRef.current.length
+        });
+        
+        // If it's a temporary ID, queue the operation until we get the server ID
+        if (isTemporaryId && tempIdToServerIdMapRef.current.has(objectId)) {
+          // We already have the server ID, use it
+          const serverId = tempIdToServerIdMapRef.current.get(objectId);
+          console.log('[Whiteboard] Using mapped server ID for modification', { 
+            temporaryId: objectId,
+            serverId
+          });
+          options.target.id = serverId;
+        } else if (isTemporaryId) {
+          // Queue the operation until we get the server ID
+          console.log('[Whiteboard] Queuing modify operation for object with temporary ID:', objectId);
+          
+          const action = {
+            type: 'modify',
+            objectId: objectId,
+            object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
+          };
+          
+          console.log('[Whiteboard] Object toJSON result for modify action:', { 
+            objectKeys: Object.keys(action.object),
+            objectIdInObject: action.object.id,
+            fullObject: action.object
+          });
+          
+          operationQueueRef.current.push({ action, objectId });
+          console.log('[Whiteboard] Modify operation queued', { 
+            objectId,
+            queueSize: operationQueueRef.current.length,
+            actionType: action.type
+          });
+          return;
         }
         
         // Send action to other users
@@ -514,14 +625,26 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
         };
         
-        // Reduce logging for better performance
-        if (Math.random() < 0.01) { // Only log 1% of events
-          console.log('[Whiteboard] Sending canvas modify action:', { 
-            boardId, 
-            actionType: action.type,
-            userId
+        // Ensure the ID is properly included in the serialized object
+        if (!action.object.id && options.target.id) {
+          action.object.id = options.target.id;
+          console.log('[Whiteboard] Manually added ID to serialized object (modify)', { 
+            objectId: action.object.id
           });
         }
+        
+        console.log('[Whiteboard] Object toJSON result for modify action:', { 
+          objectKeys: Object.keys(action.object),
+          objectIdInObject: action.object.id,
+          fullObject: action.object
+        });
+        
+        console.log('[Whiteboard] Sending canvas modify action to server:', { 
+          boardId, 
+          actionType: action.type,
+          objectId: action.objectId,
+          userId
+        });
         
         if (socketRef.current) {
           socketRef.current.emit('canvas-action', {
@@ -530,24 +653,24 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             userId // This is the Cognito userId
           });
           
-          // Reduce logging for better performance
-          if (Math.random() < 0.01) { // Only log 1% of events
-            console.log('[Whiteboard] Canvas modify action sent to server');
-          }
+          console.log('[Whiteboard] Canvas modify action sent to server successfully');
         } else {
           console.warn('[Whiteboard] Socket not available, cannot send canvas modify action');
         }
         
-        // Log confirmation when action is processed (only occasionally)
+        // Log confirmation when action is processed
         socketRef.current?.once('action-processed', (data) => {
-          if (Math.random() < 0.01) { // Only log 1% of events
-            console.log('[Whiteboard] Modify action processed confirmation received:', data);
-          }
+          console.log('[Whiteboard] Modify action processed confirmation received:', data);
         });
       });
       
       canvas.on('object:removed', (options: any) => {
-        console.log('[Whiteboard] Canvas object:removed event triggered', { options });
+        console.log('[Whiteboard] Canvas object:removed event triggered', { 
+          options,
+          targetId: options.target?.id,
+          targetType: options.target?.type,
+          hasTarget: !!options.target
+        });
         
         if (!options.target) {
           console.warn('[Whiteboard] No target in object:removed event');
@@ -556,7 +679,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         
         // Skip if this event was triggered by a remote action
         if (options.target.remoteAction) {
-          console.log('[Whiteboard] Skipping remote action in object:removed event');
+          console.log('[Whiteboard] Skipping remote action in object:removed event', { 
+            targetId: options.target.id,
+            targetType: options.target.type
+          });
           return;
         }
         
@@ -567,13 +693,62 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           return;
         }
         
+        console.log('[Whiteboard] Object before removal', { 
+          objectId: options.target.id,
+          objectType: options.target.type,
+          hasIdProperty: !!options.target.id
+        });
+        
+        // Check if the object has a temporary ID (prefixed with 'temp_' or is a UUID)
+        const objectId = options.target.id;
+        const isTemporaryId = objectId.startsWith('temp_') || /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(objectId);
+        
+        console.log('[Whiteboard] Object removal details', { 
+          objectId,
+          isTemporaryId,
+          hasMapping: isTemporaryId ? tempIdToServerIdMapRef.current.has(objectId) : null,
+          queueSize: operationQueueRef.current.length
+        });
+        
+        // If it's a temporary ID, queue the operation until we get the server ID
+        if (isTemporaryId && tempIdToServerIdMapRef.current.has(objectId)) {
+          // We already have the server ID, use it
+          const serverId = tempIdToServerIdMapRef.current.get(objectId);
+          console.log('[Whiteboard] Using mapped server ID for removal', { 
+            temporaryId: objectId,
+            serverId
+          });
+          options.target.id = serverId;
+        } else if (isTemporaryId) {
+          // Queue the operation until we get the server ID
+          console.log('[Whiteboard] Queuing remove operation for object with temporary ID:', objectId);
+          
+          const action = {
+            type: 'remove',
+            objectId: objectId
+          };
+          
+          operationQueueRef.current.push({ action, objectId });
+          console.log('[Whiteboard] Remove operation queued', { 
+            objectId,
+            queueSize: operationQueueRef.current.length,
+            actionType: action.type
+          });
+          return;
+        }
+        
         // Send action to other users
         const action = {
           type: 'remove',
           objectId: options.target.id
         };
         
-        console.log('[Whiteboard] Sending canvas remove action:', { boardId, action, userId, userType: 'cognito' });
+        console.log('[Whiteboard] Sending canvas remove action to server:', { 
+          boardId, 
+          actionType: action.type,
+          objectId: action.objectId,
+          userId
+        });
         
         if (socketRef.current) {
           socketRef.current.emit('canvas-action', {
@@ -582,7 +757,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             userId // This is the Cognito userId
           });
           
-          console.log('[Whiteboard] Canvas remove action sent to server');
+          console.log('[Whiteboard] Canvas remove action sent to server successfully');
         } else {
           console.warn('[Whiteboard] Socket not available, cannot send canvas remove action');
         }
@@ -867,6 +1042,12 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
 
   // Apply remote actions to the canvas
   const applyRemoteAction = (data: any) => {
+    console.log('[Whiteboard] Applying remote action', { 
+      data,
+      hasFabricRef: !!fabricRef.current,
+      userId
+    });
+    
     if (!fabricRef.current) {
       console.log('[Whiteboard] Fabric not ready for remote action');
       return;
@@ -881,11 +1062,11 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
       return;
     }
     
-    console.log('[Whiteboard] Applying remote action:', { 
+    console.log('[Whiteboard] Processing remote action:', { 
       actionType: action.type, 
       actionUserId,
       objectType: action.object?.type,
-      objectId: action.object?.id
+      objectId: action.object?.id || action.objectId
     });
     
     // Validate action data
@@ -897,6 +1078,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
     switch (action.type) {
       case 'add':
         try {
+          console.log('[Whiteboard] Processing add action', { 
+            objectData: action.object
+          });
+          
           // Log the object data being processed
           console.log('[Whiteboard] Processing add action object data:', action.object);
           
@@ -946,47 +1131,18 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           // Mark as remote action to avoid infinite loop
           fabricObject.remoteAction = true;
           
-          // Log canvas state before adding object
-          console.log('[Whiteboard] Canvas state before adding object:', {
-            width: canvas.width,
-            height: canvas.height,
-            zoom: canvas.getZoom(),
-            viewport: canvas.viewportTransform
+          console.log('[Whiteboard] Adding object to canvas', { 
+            objectType: fabricObject.type,
+            objectId: fabricObject.id
           });
           
           // Add the object to the canvas
           canvas.add(fabricObject);
-          console.log('[Whiteboard] Object added to canvas, triggering render');
-          
-          // Log object position
-          console.log('[Whiteboard] Added object position:', {
-            left: fabricObject.left,
-            top: fabricObject.top,
-            width: fabricObject.width,
-            height: fabricObject.height
-          });
           
           // Force a complete re-render
           setTimeout(() => {
             canvas.renderAll();
-            console.log('[Whiteboard] Canvas render completed');
-            
-            // Verify the object was added
-            const objects = canvas.getObjects();
-            console.log('[Whiteboard] Canvas objects after addition:', objects.length);
-            if (objects.length > 0) {
-              console.log('[Whiteboard] Last object in canvas:', objects[objects.length - 1]);
-            }
-            
-            // Log successful addition
-            console.log('[Whiteboard] Remote add action applied successfully:', { 
-              objectType: fabricObject.type,
-              objectId: fabricObject.id,
-              canvasObjectsCount: canvas.getObjects().length
-            });
-            
-            // Log the actual object that was added
-            console.log('[Whiteboard] Added object details:', fabricObject);
+            console.log('[Whiteboard] Canvas render completed for added object');
           }, 0);
         } catch (error) {
           console.error('[Whiteboard] Error applying remote add action:', error);
@@ -996,6 +1152,11 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         
       case 'modify':
         try {
+          console.log('[Whiteboard] Processing modify action', { 
+            objectId: action.objectId,
+            objectData: action.object
+          });
+          
           // Validate object ID
           if (!action.objectId) {
             console.error('[Whiteboard] Missing objectId for modify action:', action);
@@ -1007,15 +1168,12 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             // Mark as remote action to avoid infinite loop
             objectToModify.remoteAction = true;
             
-            // Log the modification for debugging
-            console.log('[Whiteboard] Applying modification to object:', {
+            console.log('[Whiteboard] Applying modification to object', {
               objectId: action.objectId,
-              objectType: objectToModify.type,
-              properties: Object.keys(action.object || {})
+              objectType: objectToModify.type
             });
             
             // Apply all properties from the action object
-            // We need to be more careful about which properties to apply
             if (action.object) {
               // Create a copy of the object data to avoid reference issues
               const objectData = JSON.parse(JSON.stringify(action.object));
@@ -1029,11 +1187,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             
             // Force a complete re-render
             canvas.renderAll();
-            
-            // Reduce logging for better performance
-            if (Math.random() < 0.1) {
-              console.log('[Whiteboard] Remote modify action applied:', { objectId: action.objectId });
-            }
+            console.log('[Whiteboard] Remote modify action applied successfully', { objectId: action.objectId });
           } else {
             console.warn('[Whiteboard] Object to modify not found:', { objectId: action.objectId });
           }
@@ -1045,6 +1199,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         
       case 'remove':
         try {
+          console.log('[Whiteboard] Processing remove action', { 
+            objectId: action.objectId
+          });
+          
           // Validate object ID
           if (!action.objectId) {
             console.error('[Whiteboard] Missing objectId for remove action:', action);
@@ -1057,7 +1215,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             objectToRemove.remoteAction = true;
             canvas.remove(objectToRemove);
             canvas.renderAll();
-            console.log('[Whiteboard] Remote remove action applied:', { objectId: action.objectId });
+            console.log('[Whiteboard] Remote remove action applied successfully', { objectId: action.objectId });
           } else {
             console.warn('[Whiteboard] Object to remove not found:', { objectId: action.objectId });
           }
@@ -1071,7 +1229,110 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
         console.warn('[Whiteboard] Unknown action type', { type: action.type });
     }
   };
-
+  
+  // Process queued operations for objects with temporary IDs
+  const processOperationQueue = (temporaryId: string, serverId: string) => {
+    console.log('[Whiteboard] Processing operation queue for ID mapping', { 
+      temporaryId, 
+      serverId,
+      queueSize: operationQueueRef.current.length
+    });
+    
+    // Update any objects on the canvas that have the temporary ID
+    if (fabricRef.current) {
+      const canvas = fabricRef.current;
+      const objects = canvas.getObjects();
+      
+      console.log('[Whiteboard] Updating canvas objects with temporary ID', { 
+        canvasObjectsCount: objects.length
+      });
+      
+      objects.forEach((obj: any) => {
+        if (obj.id === temporaryId) {
+          console.log('[Whiteboard] Updating object ID from temporary to server ID', { 
+            temporaryId, 
+            serverId,
+            objectType: obj.type,
+            objectId: obj.id
+          });
+          obj.id = serverId;
+        }
+      });
+    }
+    
+    // Process queued operations
+    const queue = operationQueueRef.current;
+    const remainingQueue = [];
+    const processedOperations = [];
+    
+    console.log('[Whiteboard] Processing queued operations', { 
+      queueLength: queue.length
+    });
+    
+    for (const queuedOperation of queue) {
+      console.log('[Whiteboard] Examining queued operation', { 
+        operationObjectId: queuedOperation.objectId,
+        temporaryId,
+        isMatch: queuedOperation.objectId === temporaryId
+      });
+      
+      if (queuedOperation.objectId === temporaryId) {
+        // Update the object ID in the action and process it
+        console.log('[Whiteboard] Processing queued operation with updated ID', { 
+          actionType: queuedOperation.action.type,
+          temporaryId,
+          serverId
+        });
+        
+        // Update the action with the server ID
+        if (queuedOperation.action.objectId) {
+          queuedOperation.action.objectId = serverId;
+        }
+        if (queuedOperation.action.object?.id) {
+          queuedOperation.action.object.id = serverId;
+        }
+        
+        // Send the action now that we have the server ID
+        if (socketRef.current) {
+          console.log('[Whiteboard] Sending queued action with server ID', { 
+            actionType: queuedOperation.action.type,
+            serverId,
+            boardId,
+            userId
+          });
+          
+          socketRef.current.emit('canvas-action', {
+            boardId,
+            action: queuedOperation.action,
+            userId
+          });
+          
+          console.log('[Whiteboard] Sent queued action with server ID successfully', { 
+            actionType: queuedOperation.action.type,
+            serverId
+          });
+          
+          processedOperations.push(queuedOperation);
+        }
+      } else {
+        // Keep operations for other objects in the queue
+        console.log('[Whiteboard] Keeping operation in queue for other object', { 
+          operationObjectId: queuedOperation.objectId
+        });
+        remainingQueue.push(queuedOperation);
+      }
+    }
+    
+    // Update the queue with remaining operations
+    operationQueueRef.current = remainingQueue;
+    
+    console.log('[Whiteboard] Operation queue processing complete', { 
+      processedCount: processedOperations.length,
+      remainingCount: remainingQueue.length,
+      queueSize: operationQueueRef.current.length
+    });
+  };
+  
   // Add pan and zoom methods
   const zoomIn = useCallback(() => {
     if (!fabricRef.current) return;
