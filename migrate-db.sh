@@ -24,13 +24,30 @@ if ! eb status &> /dev/null; then
     exit 1
 fi
 
+# Validate that required environment variables are set
+echo "🔍 Validating environment configuration..."
+if [ -f ".env" ]; then
+    db_url=$(grep -E "^DATABASE_URL=" .env | cut -d '=' -f2-)
+    if [ -z "$db_url" ] || [ "$db_url" = "your-database-connection-string" ]; then
+        echo "❌ DATABASE_URL not properly configured in .env file"
+        exit 1
+    fi
+    echo "✅ DATABASE_URL is configured"
+else
+    echo "❌ .env file not found"
+    exit 1
+fi
+
 echo "🔧 Running Prisma migrations on EB environment..."
 echo "📝 You'll need to confirm the SSH connection to your EB instance"
 
 # SSH into EB instance and run migrations
-eb ssh -c "cd /var/app/current && npx prisma migrate deploy"
-
-echo "✅ Database migrations completed!"
-echo "📝 If you encountered any issues, you can manually SSH into your EB instance:"
-echo "   eb ssh"
-echo "   # Then run: cd /var/app/current && npx prisma migrate deploy"
+if eb ssh -c "cd /var/app/current && npx prisma migrate deploy"; then
+    echo "✅ Database migrations completed successfully!"
+else
+    echo "❌ Database migrations failed!"
+    echo "📝 If you encountered any issues, you can manually SSH into your EB instance:"
+    echo "   eb ssh"
+    echo "   # Then run: cd /var/app/current && npx prisma migrate deploy"
+    exit 1
+fi

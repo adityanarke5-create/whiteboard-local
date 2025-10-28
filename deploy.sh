@@ -82,7 +82,7 @@ COGNITO_CLIENT_ID="$(read_env_key .env COGNITO_CLIENT_ID)"
 COGNITO_DOMAIN="$(read_env_key .env COGNITO_DOMAIN)"
 
 if [ -z "${DATABASE_URL:-}" ]; then
-  echo "❗ DATABASE_URL not found. Please set it in backend/.env or as environment variable."
+  echo "❗ DATABASE_URL not found. Please set it in backend/.env"
   popd >/dev/null; exit 1
 fi
 
@@ -116,7 +116,7 @@ echo "📤 Deploying backend..."
 eb deploy "$EB_BACKEND_ENV"
 
 BACKEND_CNAME="$(eb status "$EB_BACKEND_ENV" | awk -F': ' '/CNAME:/{print $2}' || true)"
-echo "🔗 Backend URL: https://$BACKEND_CNAME"
+echo "🔗 Backend URL: http://$BACKEND_CNAME"
 popd >/dev/null
 
 echo "⏳ Waiting ${BUILD_WAIT_SECONDS}s for backend to stabilize..."
@@ -127,26 +127,52 @@ echo
 echo "🎨 Deploying FRONTEND to Elastic Beanstalk (single-instance $INSTANCE_TYPE)..."
 pushd frontend >/dev/null
 
-FRONTEND_BACKEND_URL="https://${BACKEND_CNAME:-$EB_BACKEND_ENV}"
+FRONTEND_BACKEND_URL="http://${BACKEND_CNAME:-$EB_BACKEND_ENV}"
+
+# Read frontend environment variables (if present locally)
+NEXT_PUBLIC_AWS_REGION="$(read_env_key .env.production NEXT_PUBLIC_AWS_REGION)"
+NEXT_PUBLIC_COGNITO_USER_POOL_ID="$(read_env_key .env.production NEXT_PUBLIC_COGNITO_USER_POOL_ID)"
+NEXT_PUBLIC_COGNITO_CLIENT_ID="$(read_env_key .env.production NEXT_PUBLIC_COGNITO_CLIENT_ID)"
+NEXT_PUBLIC_COGNITO_DOMAIN="$(read_env_key .env.production NEXT_PUBLIC_COGNITO_DOMAIN)"
+
+# If locally missing, fall back to defaults (so the script doesn't fail unnecessarily)
+NEXT_PUBLIC_AWS_REGION="${NEXT_PUBLIC_AWS_REGION:-$AWS_REGION}"
+NEXT_PUBLIC_COGNITO_USER_POOL_ID="${NEXT_PUBLIC_COGNITO_USER_POOL_ID:-}"
+NEXT_PUBLIC_COGNITO_CLIENT_ID="${NEXT_PUBLIC_COGNITO_CLIENT_ID:-}"
+NEXT_PUBLIC_COGNITO_DOMAIN="${NEXT_PUBLIC_COGNITO_DOMAIN:-}"
+
 cat > .env.production <<EOF
 NEXT_PUBLIC_BACKEND_URL=${FRONTEND_BACKEND_URL}
-NEXT_PUBLIC_AWS_REGION=${AWS_REGION}
-NODE_ENV="production"
-DATABASE_URL=postgresql://neondb_owner:npg_WubEn4mP6gjL@ep-wild-paper-a4xww53p-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-# AWS Cognito
-NEXT_PUBLIC_AWS_REGION=ap-south-1
-NEXT_PUBLIC_COGNITO_USER_POOL_ID=ap-south-1_L5ECqz3kt
-NEXT_PUBLIC_COGNITO_CLIENT_ID=4gs73ppm5ksn0u5iul8dq3hiun
-NEXT_PUBLIC_COGNITO_DOMAIN=https://ap-south-1l5ecqz3kt.auth.ap-south-1.amazoncognito.com
+NEXT_PUBLIC_AWS_REGION=${NEXT_PUBLIC_AWS_REGION}
+NODE_ENV=production
+# AWS Cognito (optional — override in AWS console if empty)
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=${NEXT_PUBLIC_COGNITO_USER_POOL_ID}
+NEXT_PUBLIC_COGNITO_CLIENT_ID=${NEXT_PUBLIC_COGNITO_CLIENT_ID}
+NEXT_PUBLIC_COGNITO_DOMAIN=${NEXT_PUBLIC_COGNITO_DOMAIN}
 EOF
-echo "✅ Created .env.production with backend URL: $FRONTEND_BACKEND_URL"
+echo "✅ Created/updated frontend/.env.production with backend URL: $FRONTEND_BACKEND_URL"
 
+# If the project is configured to produce a standalone build, the server is at:
+#   .next/standalone/server.js
+# We must start that file on EB instead of running `next start`.
 if [ ! -f Procfile ]; then
-  echo "web: npm run start" > Procfile
+  # Use standalone server if present, otherwise fall back to next start
+  if [ -f ".next/standalone/server.js" ]; then
+    echo "web: node .next/standalone/server.js" > Procfile
+  else
+    echo "web: npm run start" > Procfile
+  fi
+  echo "✅ Wrote Procfile for frontend"
+else
+  # if Procfile exists, ensure it will use standalone server when available
+  if grep -q "npm run start" Procfile && [ -f ".next/standalone/server.js" ]; then
+    echo "⚠️ Replacing Procfile to use standalone server (safer for EB standalone deployments)"
+    echo "web: node .next/standalone/server.js" > Procfile
+  fi
 fi
 
-echo "📥 Installing frontend dependencies..."
-# remove local node_modules if present (prevents packaging Windows mode node_modules by accident)
+echo "📥 Installing frontend dependencies (clean install)..."
+# remove local node_modules to avoid shipping dev artifacts accidentally
 rm -rf node_modules || true
 npm ci || npm install
 
@@ -154,12 +180,11 @@ echo "🏗 Building Next.js frontend..."
 npm run build
 
 # ---------------- Fix for standalone CSS issue ----------------
-# Ensure that .next/standalone exists and that .next/static is available to the standalone server.
+# If output: 'standalone' is used, Next produces .next/standalone plus .next/static.
+# Copy static assets into the standalone runtime so the server can serve them.
 if [ -d ".next/standalone" ]; then
   echo "🔧 Preparing standalone runtime: copying static assets into .next/standalone/.next/static"
-  # ensure target directory exists
   mkdir -p .next/standalone/.next
-  # copy static assets (css/js/images) into the standalone runtime so server can serve them
   if [ -d ".next/static" ]; then
     rm -rf .next/standalone/.next/static || true
     cp -r .next/static .next/standalone/.next/static
@@ -167,8 +192,12 @@ if [ -d ".next/standalone" ]; then
   else
     echo "⚠️ Warning: .next/static not found after build — CSS/static might be missing"
   fi
+
+  # Fix permissions so EB can start the standalone server and read files
+  echo "🔐 Fixing permissions under .next/standalone for EB runtime"
+  chmod -R a+rX .next/standalone || true
 else
-  echo "⚠️ Warning: .next/standalone not present. If you intended standalone output, set output:'standalone' in next.config.js"
+  echo "⚠️ Notice: .next/standalone not present. Make sure next.config.js sets output: 'standalone' if you want standalone deployment."
 fi
 
 # ---------------- Create/overwrite a safe .ebignore for frontend ----------------
@@ -202,7 +231,6 @@ npm-debug.log
 EOF
 echo "✅ Wrote frontend/.ebignore to exclude node_modules and include built runtime"
 
-# Initialize EB for frontend if needed (only sets up .elasticbeanstalk when run)
 if [ ! -d .elasticbeanstalk ]; then
   echo "🔧 Initializing EB for frontend app: $EB_FRONTEND_APP"
   eb init "$EB_FRONTEND_APP" -p "$EB_PLATFORM" --region "$AWS_REGION" --keyname "$EB_KEYNAME"
@@ -218,20 +246,20 @@ else
   echo "✅ Frontend environment $EB_FRONTEND_ENV already exists"
 fi
 
-eb setenv NEXT_PUBLIC_BACKEND_URL="$FRONTEND_BACKEND_URL" NODE_ENV=production NEXT_PUBLIC_AWS_REGION="$AWS_REGION" >/dev/null
+eb setenv NEXT_PUBLIC_BACKEND_URL="$FRONTEND_BACKEND_URL" NODE_ENV=production NEXT_PUBLIC_AWS_REGION="$NEXT_PUBLIC_AWS_REGION" >/dev/null
 
 echo "📤 Deploying frontend..."
 eb deploy "$EB_FRONTEND_ENV"
 
 FRONTEND_CNAME="$(eb status "$EB_FRONTEND_ENV" | awk -F': ' '/CNAME:/{print $2}' || true)"
-echo "🌐 Frontend URL: https://$FRONTEND_CNAME"
+echo "🌐 Frontend URL: http://$FRONTEND_CNAME"
 popd >/dev/null
 
 # ---------------- Wrap-up ----------------
 echo
 echo "🎉 Deployment complete!"
-echo "Backend: https://$BACKEND_CNAME"
-echo "Frontend: https://$FRONTEND_CNAME"
+echo "Backend: http://$BACKEND_CNAME"
+echo "Frontend: http://$FRONTEND_CNAME"
 echo
 echo "✅ SSH Key: ${EB_KEYNAME}.pem"
 echo "   To SSH into instance: eb ssh --region $AWS_REGION"

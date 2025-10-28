@@ -16,7 +16,7 @@ npm-debug.log
 !.next/standalone/
 !.next/standalone/.next/
 !.next/standalone/.next/static/
-!.env.production
+
 # Also allow public, package.json, Procfile and other runtime files
 !package.json
 !Procfile

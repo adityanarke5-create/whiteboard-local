@@ -1,13 +1,23 @@
 'use client';
 
-import { useState, useRef, useEffect, use } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Toolbar from '@/components/Toolbar';
-import Whiteboard, { WhiteboardHandle } from '@/components/Whiteboard';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/auth-context';
-import { AuthService } from '@/lib/auth-service';
+import Whiteboard from '@/components/Whiteboard';
+import Toolbar from '@/components/Toolbar';
 import SharingModal from '@/components/SharingModal';
+import { io } from 'socket.io-client';
+
+// Polyfill for crypto.randomUUID if not available
+if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
+  crypto.randomUUID = function() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+}
 
 // Backend API base URL - using the dedicated backend server port
 const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
