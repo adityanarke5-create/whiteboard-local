@@ -52,4 +52,16 @@ export class CleanupService {
       throw error;
     }
   }
+
+  // Immediate cleanup after snapshot creation
+  async cleanupAfterSnapshot(boardId: string): Promise<number> {
+    try {
+      const deletedCount = await this.databaseService.cleanupActionsBeforeLatestSnapshot(boardId);
+      console.log('[CleanupService] Immediate cleanup after snapshot:', { boardId, deletedCount });
+      return deletedCount;
+    } catch (error) {
+      console.error('[CleanupService] Error during immediate cleanup after snapshot:', error);
+      throw error;
+    }
+  }
 }

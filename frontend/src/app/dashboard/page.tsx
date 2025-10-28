@@ -34,10 +34,17 @@ export default function Dashboard() {
           }
         });
         const data = await response.json();
-        console.log(data);
-        setBoards(data);
+        console.log('Boards data:', data);
+        
+        if (data.error) {
+          console.error('Error fetching boards:', data.error);
+          setBoards([]);
+        } else {
+          setBoards(Array.isArray(data) ? data : []);
+        }
       } catch (error) {
         console.error('Failed to fetch boards:', error);
+        setBoards([]);
       } finally {
         setLoading(false);
       }

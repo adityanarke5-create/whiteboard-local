@@ -1,139 +1,105 @@
-# CollabBoard - Real-time Collaborative Whiteboard
+# Whiteboard Application
 
-A real-time collaborative whiteboard application built with Next.js 14+, Fabric.js, Tailwind CSS, PostgreSQL, Prisma, and AWS Cognito authentication.
+A collaborative whiteboard application with real-time functionality built with Node.js, TypeScript, Prisma, PostgreSQL, and Next.js.
 
 ## Project Structure
 
-This project is divided into two main parts:
-
 ```
 .
-├── backend/             # Backend service (Node.js, Prisma, Socket.io)
-└── frontend/            # Frontend application (Next.js, React, Tailwind CSS)
+├── backend/              # Node.js/TypeScript backend with Prisma
+│   ├── src/              # Source code
+│   ├── prisma/           # Prisma schema and migrations
+│   └── ...
+├── frontend/             # Next.js frontend
+│   ├── src/              # Source code
+│   └── ...
+├── deploy.sh             # AWS deployment script (Linux/Mac)
+├── deploy.bat            # AWS deployment script (Windows)
+├── dev.sh                # Local development script (Linux/Mac)
+├── dev.bat               # Local development script (Windows)
+├── destroy.sh            # AWS resource cleanup script (Linux/Mac)
+├── destroy.bat           # AWS resource cleanup script (Windows)
+└── DEPLOYMENT.md         # Detailed deployment documentation
 ```
 
 ## Features
 
-- **Real-time Collaboration**: Multiple users can work on the same whiteboard simultaneously
-- **Drawing Tools**: Pen, shapes, text, and eraser tools
-- **Export Options**: Export boards as PNG, JPG, SVG, or JSON
-- **User Authentication**: Secure authentication with AWS Cognito
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Board Management**: Create, view, and manage multiple boards
+- Real-time collaborative whiteboard
+- User authentication with AWS Cognito
+- Board sharing and collaboration
+- Auto-save functionality
+- Export capabilities (PNG, JPEG, SVG, JSON)
+- Responsive design
 
-## Tech Stack
-
-### Frontend
-- Next.js 14+ with App Router
-- TypeScript
-- Tailwind CSS
-- Fabric.js for canvas operations
-- Socket.io-client for real-time features
+## Technology Stack
 
 ### Backend
-- Node.js
-- PostgreSQL with Prisma ORM
-- Socket.io for WebSocket connections
+- Node.js with TypeScript
+- Express.js web framework
+- Socket.IO for real-time communication
+- Prisma ORM with PostgreSQL
 - AWS Cognito for authentication
+
+### Frontend
+- Next.js 16
+- React 19
+- Tailwind CSS for styling
+- Fabric.js for canvas manipulation
+- AWS Amplify for authentication
 
 ## Getting Started
 
-### Backend
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn
+- PostgreSQL (for local development)
+- AWS Account (for deployment)
 
-1. **Navigate to the backend directory**:
+### Local Development
+
+1. **Install dependencies:**
    ```bash
+   # Install root dependencies (concurrently)
+   npm install
+   
+   # Backend dependencies
    cd backend
-   ```
-
-2. **Install dependencies**:
-   ```bash
+   npm install
+   
+   # Frontend dependencies
+   cd frontend
    npm install
    ```
 
-3. **Set up environment variables**:
-   Create a `.env` file with your configuration:
-   ```env
-   DATABASE_URL=postgresql://user:password@localhost:5432/whiteboard
-   NEXT_PUBLIC_AWS_REGION=us-east-1
-   NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
-   NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
-   ```
+2. **Set up environment variables:**
+   Create `.env` files in both backend and frontend directories based on the `.env.example` files.
 
-4. **Set up the database**:
+3. **Run the application:**
    ```bash
-   npx prisma migrate dev
-   ```
-
-5. **Seed the database** (optional):
-   ```bash
-   npm run seed
-   ```
-
-6. **Run the development server**:
-   ```bash
+   # Run both frontend and backend using concurrently
    npm run dev
+   
+   # Or use the automated scripts:
+   ./dev.sh  # Linux/Mac
+   dev.bat   # Windows
    ```
 
-### Frontend
+### Deployment
 
-1. **Navigate to the frontend directory**:
-   ```bash
-   cd frontend
-   ```
+For AWS deployment, see [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+## Scripts
 
-3. **Set up environment variables**:
-   Create a `.env.local` file with your configuration:
-   ```env
-   NEXT_PUBLIC_AWS_REGION=us-east-1
-   NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
-   NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
-   ```
+- `deploy.sh` / `deploy.bat` - Deploy to AWS
+- `dev.sh` / `dev.bat` - Run locally for development
+- `destroy.sh` / `destroy.bat` - Clean up AWS resources
 
-4. **Run the development server**:
-   ```bash
-   npm run dev
-   ```
+## Available npm Scripts (Root)
 
-5. **Open your browser**:
-   Visit `http://localhost:3000` to see the application.
-
-## Database
-
-The database schema is defined in `backend/prisma/schema.prisma`. The main models are:
-- User
-- Board
-- BoardCollaborator
-- BoardAction
-- BoardSnapshot
-
-## Deployment
-
-To deploy the application:
-
-1. **Build the frontend**:
-   ```bash
-   cd frontend
-   npm run build
-   ```
-
-2. **Start the backend server**:
-   ```bash
-   cd ../backend
-   npm start
-   ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a pull request
+- `npm run dev` - Run both frontend and backend in development mode
+- `npm run build` - Build both frontend and backend
+- `npm run start` - Start both frontend and backend in production mode
+- `npm run seed` - Seed the backend database
 
 ## License
 

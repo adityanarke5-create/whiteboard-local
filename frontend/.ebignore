@@ -1,0 +1,26 @@
+# Ignore local dev artifacts and OS files
+node_modules
+.next/cache
+.next/build-manifest.json
+npm-debug.log
+.DS_Store
+.git
+.gitignore
+.env
+.env.local
+.env.development
+*.pem
+*.log
+
+# Keep the standalone server and its static assets (if using output: 'standalone')
+!.next/standalone/
+!.next/standalone/.next/
+!.next/standalone/.next/static/
+!.env.production
+# Also allow public, package.json, Procfile and other runtime files
+!package.json
+!Procfile
+!next.config.js
+!.env.production
+!.platform/
+!.elasticbeanstalk/

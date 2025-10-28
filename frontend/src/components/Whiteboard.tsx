@@ -230,6 +230,10 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             dataSize: data.data?.length,
             timestamp: data.timestamp
           });
+          
+          // Clear the canvas before loading the snapshot to prevent duplication
+          fabricRef.current.clear();
+          
           // Load the complete board state
           fabricRef.current.loadFromJSON(data.data, () => {
             fabricRef.current.renderAll();
@@ -608,6 +612,11 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
             object: options.target.toJSON(['lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY', 'lockUniScaling', 'id'])
           };
           
+          // Ensure the ID is properly included in the serialized object
+          if (!action.object.id && options.target.id) {
+            action.object.id = options.target.id;
+          }
+          
           console.log('[Whiteboard] Object toJSON result for modify action:', { 
             objectKeys: Object.keys(action.object),
             objectIdInObject: action.object.id,
@@ -665,7 +674,7 @@ const Whiteboard = forwardRef<WhiteboardHandle, WhiteboardProps>(({
           console.log('[Whiteboard] Modify action processed confirmation received:', data);
         });
       });
-      
+
       canvas.on('object:removed', (options: any) => {
         console.log('[Whiteboard] Canvas object:removed event triggered', { 
           options,

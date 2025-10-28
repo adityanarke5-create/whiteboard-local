@@ -1,11 +1,14 @@
 import { DatabaseService } from '../services/database.service';
+import { CleanupService } from '../services/cleanup.service';
 import { Request, Response } from 'express';
 
 export class SnapshotController {
   private databaseService: DatabaseService;
+  private cleanupService: CleanupService;
 
   constructor() {
     this.databaseService = new DatabaseService();
+    this.cleanupService = new CleanupService();
   }
 
   // Get all snapshots for a board (should typically just return the latest one)
@@ -117,6 +120,19 @@ export class SnapshotController {
         boardId,
         data,
       });
+      
+      // Automatically clean up actions that occurred before this snapshot using the cleanup service
+      try {
+        const deletedCount = await this.cleanupService.cleanupAfterSnapshot(boardId);
+        console.log('[SnapshotController] Actions cleaned up after snapshot creation:', { 
+          boardId,
+          deletedCount,
+          timestamp: new Date().toISOString()
+        });
+      } catch (cleanupError) {
+        console.error('[SnapshotController] Error cleaning up actions after snapshot creation:', cleanupError);
+        // Don't fail the snapshot creation if cleanup fails, but log the error
+      }
       
       // console.log('[SnapshotController] Snapshot created successfully:', { 
       //   snapshotId: snapshot.id,

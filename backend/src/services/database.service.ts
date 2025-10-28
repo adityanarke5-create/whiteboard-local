@@ -416,7 +416,7 @@ export class DatabaseService {
     }
   }
 
-  // Add this new method to delete actions that occurred before the latest snapshot
+  // Enhanced cleanup method that ensures all actions up to the snapshot are removed
   async cleanupActionsBeforeLatestSnapshot(boardId: string): Promise<number> {
     console.log('[DatabaseService] Cleaning up actions before latest snapshot', { boardId });
     
@@ -429,12 +429,22 @@ export class DatabaseService {
         return 0;
       }
       
-      // Delete all actions that occurred before the snapshot timestamp
+      // First, get count of actions that will be deleted for logging purposes
+      const actionsToDeleteCount = await this.getActionCountBeforeTimestamp(boardId, latestSnapshot.timestamp);
+      
+      console.log('[DatabaseService] About to delete actions', { 
+        boardId, 
+        actionsToDeleteCount,
+        snapshotTimestamp: latestSnapshot.timestamp
+      });
+      
+      // Delete all actions that occurred before or at the snapshot timestamp
+      // Using lte (less than or equal) to ensure all actions up to the snapshot time are cleaned
       const result = await db.boardAction.deleteMany({
         where: {
           boardId: boardId,
           timestamp: {
-            lt: latestSnapshot.timestamp
+            lte: latestSnapshot.timestamp
           }
         }
       });
@@ -442,6 +452,7 @@ export class DatabaseService {
       console.log('[DatabaseService] Actions cleaned up successfully', { 
         boardId, 
         deletedCount: result.count,
+        expectedCount: actionsToDeleteCount,
         snapshotTimestamp: latestSnapshot.timestamp
       });
       
@@ -451,4 +462,46 @@ export class DatabaseService {
       throw error;
     }
   }
+  
+  // Add a method to get the count of actions before a specific timestamp
+  async getActionCountBeforeTimestamp(boardId: string, timestamp: Date): Promise<number> {
+    try {
+      const count = await db.boardAction.count({
+        where: {
+          boardId: boardId,
+          timestamp: {
+            lt: timestamp
+          }
+        }
+      });
+      
+      return count;
+    } catch (error) {
+      console.error('[DatabaseService] Error getting action count before timestamp:', error);
+      throw error;
+    }
+  }
+  
+  // Add a method to get all actions before a specific timestamp
+  async getActionsBeforeTimestamp(boardId: string, timestamp: Date): Promise<BoardAction[]> {
+    try {
+      const actions = await db.boardAction.findMany({
+        where: {
+          boardId: boardId,
+          timestamp: {
+            lt: timestamp
+          }
+        },
+        orderBy: {
+          timestamp: 'asc'
+        }
+      });
+      
+      return actions;
+    } catch (error) {
+      console.error('[DatabaseService] Error getting actions before timestamp:', error);
+      throw error;
+    }
+  }
+
 }

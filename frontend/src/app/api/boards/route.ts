@@ -15,24 +15,35 @@ export async function GET(request: Request) {
 
     // Make request to backend API
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-    const response = await fetch(`${backendUrl}/api/boards`, {
+    console.log('Backend URL being used:', backendUrl); // Debug log
+    
+    const backendRequestUrl = `${backendUrl}/api/boards`;
+    console.log('Making request to:', backendRequestUrl); // Debug log
+    
+    const response = await fetch(backendRequestUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
     });
+    
+    console.log('Backend response status:', response.status); // Debug log
+    console.log('Backend response headers:', Object.fromEntries(response.headers)); // Debug log
 
     const data = await response.json();
+    console.log('Backend response data:', data); // Debug log
     
     if (!response.ok) {
+      console.error('Backend API error:', data);
       return NextResponse.json(
         { error: data.error || 'Failed to fetch boards' },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
+    // Ensure we're returning an array even if empty
+    return NextResponse.json(Array.isArray(data) ? data : []);
   } catch (error) {
     console.error('Error fetching boards:', error);
     return NextResponse.json(
@@ -59,7 +70,12 @@ export async function POST(request: Request) {
 
     // Make request to backend API
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-    const response = await fetch(`${backendUrl}/api/boards`, {
+    console.log('Backend URL being used:', backendUrl); // Debug log
+    
+    const backendRequestUrl = `${backendUrl}/api/boards`;
+    console.log('Making request to:', backendRequestUrl); // Debug log
+    
+    const response = await fetch(backendRequestUrl, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
@@ -67,8 +83,12 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({ title }),
     });
+    
+    console.log('Backend response status:', response.status); // Debug log
+    console.log('Backend response headers:', Object.fromEntries(response.headers)); // Debug log
 
     const data = await response.json();
+    console.log('Backend response data:', data); // Debug log
     
     if (!response.ok) {
       return NextResponse.json(

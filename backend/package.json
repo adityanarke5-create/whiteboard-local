@@ -18,14 +18,14 @@
     "node-fetch": "^3.3.2",
     "prisma": "^6.17.1",
     "socket.io": "^4.8.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20",
-    "tsconfig-paths": "^4.2.0"
+    "@types/node": "^20.19.23",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3"
   }
 }

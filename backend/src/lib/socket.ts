@@ -183,6 +183,8 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
               
               // Clean up old actions before the latest snapshot to reduce storage overhead
               try {
+                // Add a small delay to ensure snapshot is fully committed before cleanup
+                await new Promise(resolve => setTimeout(resolve, 100));
                 const deletedCount = await databaseService.cleanupActionsBeforeLatestSnapshot(boardId);
                 console.log('[WebSocket] Cleaned up old actions:', { 
                   boardId,
@@ -261,6 +263,20 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         });
       }
       
+      // Special handling for remove actions to ensure objectId is present
+      if (action.type === 'remove' && !action.objectId) {
+        console.warn('[WebSocket] Remove action missing objectId, attempting to extract from object', {
+          action
+        });
+        // Try to extract objectId from object if it exists
+        if (action.object?.id) {
+          action.objectId = action.object.id;
+          console.log('[WebSocket] Extracted objectId from object for remove action', {
+            objectId: action.objectId
+          });
+        }
+      }
+      
       // Log object ID information for all actions
       console.log('[WebSocket] Action object ID information', {
         actionType: action.type,
@@ -269,6 +285,22 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
         hasObject: !!action.object,
         objectKeys: action.object ? Object.keys(action.object) : []
       });
+      
+      // Validate that remove actions have an objectId
+      if (action.type === 'remove' && !action.objectId) {
+        console.error('[WebSocket] Remove action missing required objectId', {
+          action
+        });
+        return;
+      }
+      
+      // Validate that modify actions have an objectId
+      if (action.type === 'modify' && !action.objectId) {
+        console.error('[WebSocket] Modify action missing required objectId', {
+          action
+        });
+        return;
+      }
       
       // Map Cognito userId to database userId
       let databaseUserId = cognitoUserId;
@@ -506,6 +538,20 @@ async function saveFinalSnapshot(boardId: string, boardState: string) {
       snapshotId: snapshot.id,
       timestamp: new Date().toISOString()
     });
+    
+    // Clean up old actions before the latest snapshot to reduce storage overhead
+    try {
+      // Add a small delay to ensure snapshot is fully committed before cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const deletedCount = await databaseService.cleanupActionsBeforeLatestSnapshot(boardId);
+      console.log('[WebSocket] Cleaned up old actions (async):', { 
+        boardId,
+        deletedCount,
+        timestamp: new Date().toISOString()
+      });
+    } catch (cleanupError) {
+      console.error('[WebSocket] Error cleaning up old actions (async):', cleanupError);
+    }
   } catch (error) {
     console.error('[WebSocket] Error saving final snapshot (async):', error);
   }
