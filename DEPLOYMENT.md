@@ -18,7 +18,7 @@ Before using these scripts, ensure you have the following installed:
 
 Deploys the application to AWS services:
 - Backend to Elastic Beanstalk
-- Frontend to Elastic Beanstalk (standalone Next.js application)
+- Frontend to Amplify Hosting
 - Uses RDS for PostgreSQL database (manual setup required)
 
 **Usage (Linux/Mac):**
@@ -51,7 +51,8 @@ dev.bat
 ### 3. Destroy Script (`destroy.sh` or `destroy.bat`)
 
 Removes deployed AWS resources to prevent additional charges:
-- Deletes Elastic Beanstalk environments and applications
+- Deletes Elastic Beanstalk application
+- Deletes Amplify Hosting
 - Provides guidance for manual cleanup of other resources
 
 **Usage (Linux/Mac):**
@@ -74,43 +75,17 @@ destroy.bat
    ```
 
 2. **Set up environment variables:**
-   
-   Update the following files with your actual values:
-   
-   **Backend Configuration** (`backend/.env`):
-   ```env
-   # Database
-   DATABASE_URL=your-postgresql-connection-string
-   
-   # AWS Cognito
-   AWS_REGION=your-aws-region
-   COGNITO_USER_POOL_ID=your-cognito-user-pool-id
-   COGNITO_CLIENT_ID=your-cognito-client-id
-   COGNITO_DOMAIN=your-cognito-domain
-   
-   PORT=8080
-   NODE_ENV=production
-   ```
-   
-   **Frontend Configuration** (`frontend/.env.production`):
-   ```env
-   NEXT_PUBLIC_BACKEND_URL=your-backend-url
-   NEXT_PUBLIC_AWS_REGION=your-aws-region
-   NODE_ENV=production
-   
-   # AWS Cognito
-   NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-cognito-user-pool-id
-   NEXT_PUBLIC_COGNITO_CLIENT_ID=your-cognito-client-id
-   NEXT_PUBLIC_COGNITO_DOMAIN=your-cognito-domain
-   ```
+   After running the deployment script, you'll need to update environment variables in:
+   - Elastic Beanstalk Console (for backend)
+   - Amplify Console (for frontend)
 
 ### Database Setup
 
 The deployment uses Amazon RDS for PostgreSQL. You'll need to:
 
 1. Create an RDS PostgreSQL instance (db.t2.micro for Free Tier)
-2. Update the `DATABASE_URL` environment variable in your `backend/.env` file
-3. Run database migrations after deployment:
+2. Update the `DATABASE_URL` environment variable in Elastic Beanstalk
+3. Run database migrations:
    ```bash
    eb ssh
    # Then run: npx prisma migrate deploy
@@ -122,24 +97,10 @@ The application uses AWS Cognito for authentication:
 
 1. Create a Cognito User Pool
 2. Create an App Client in the User Pool
-3. Update the environment variables as shown in the configuration section above
-
-## Security Improvements
-
-### Environment Variable Management
-
-The updated deployment process now:
-- Validates all required environment variables before deployment
-- Prevents deployment with placeholder values
-- Uses environment variables instead of hardcoded values in scripts
-- Provides clear error messages for missing or invalid configuration
-
-### Best Practices
-
-1. Never commit actual credentials to version control
-2. Use AWS Secrets Manager or Parameter Store for production secrets
-3. Rotate credentials regularly
-4. Use IAM roles instead of access keys when possible
+3. Update the following environment variables:
+   - Backend: `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `AWS_REGION`
+   - Frontend: `NEXT_PUBLIC_COGNITO_USER_POOL_ID`, `NEXT_PUBLIC_COGNITO_CLIENT_ID`, 
+     `NEXT_PUBLIC_COGNITO_DOMAIN`, `NEXT_PUBLIC_AWS_REGION`
 
 ## Free Tier Considerations
 
@@ -157,10 +118,10 @@ To stay within AWS Free Tier limits:
 1. **Permission Errors**: Ensure your AWS user has appropriate permissions for:
    - Elastic Beanstalk
    - RDS
+   - Amplify
    - IAM (for creating roles)
 
 2. **Environment Variables**: Make sure all required environment variables are set correctly
-   - The deployment script will now validate these and prevent deployment with placeholder values
 
 3. **Database Connection**: Verify the DATABASE_URL format and network access to RDS
 
@@ -185,4 +146,3 @@ If you encounter issues:
 - Use IAM roles instead of access keys when possible
 - Regularly rotate credentials
 - Monitor your AWS usage to avoid unexpected charges
-- The updated scripts now validate configuration before deployment to prevent common security issues

@@ -70,7 +70,6 @@ DATABASE_URL=postgresql://username:password@localhost:5432/whiteboard_dev
 COGNITO_USER_POOL_ID=your-user-pool-id
 COGNITO_CLIENT_ID=your-client-id
 AWS_REGION=your-region
-COGNITO_DOMAIN=your-domain.auth.us-east-1.amazoncognito.com
 EOF
     echo "✅ Created backend .env file - Please update with your actual values"
 else
@@ -91,35 +90,6 @@ EOF
     echo "✅ Created frontend .env.local file - Please update with your actual values"
 else
     echo "✅ Frontend .env.local file already exists"
-fi
-
-# Validate environment variables
-echo "🔍 Validating environment variables..."
-
-# Check backend environment variables
-if [ -f backend/.env ]; then
-    backend_db_url=$(grep -E "^DATABASE_URL=" backend/.env | cut -d '=' -f2-)
-    if [ "$backend_db_url" = "postgresql://username:password@localhost:5432/whiteboard_dev" ] || [ -z "$backend_db_url" ]; then
-        echo "⚠️  Backend DATABASE_URL not configured - please update backend/.env"
-    fi
-    
-    backend_region=$(grep -E "^AWS_REGION=" backend/.env | cut -d '=' -f2-)
-    if [ "$backend_region" = "your-region" ] || [ -z "$backend_region" ]; then
-        echo "⚠️  Backend AWS_REGION not configured - please update backend/.env"
-    fi
-fi
-
-# Check frontend environment variables
-if [ -f frontend/.env.local ]; then
-    frontend_region=$(grep -E "^NEXT_PUBLIC_AWS_REGION=" frontend/.env.local | cut -d '=' -f2-)
-    if [ "$frontend_region" = "us-east-1" ] || [ -z "$frontend_region" ]; then
-        echo "⚠️  Frontend NEXT_PUBLIC_AWS_REGION not configured - please update frontend/.env.local"
-    fi
-    
-    frontend_pool_id=$(grep -E "^NEXT_PUBLIC_COGNITO_USER_POOL_ID=" frontend/.env.local | cut -d '=' -f2-)
-    if [ "$frontend_pool_id" = "your-user-pool-id" ] || [ -z "$frontend_pool_id" ]; then
-        echo "⚠️  Frontend NEXT_PUBLIC_COGNITO_USER_POOL_ID not configured - please update frontend/.env.local"
-    fi
 fi
 
 # Start both applications using the root package.json script

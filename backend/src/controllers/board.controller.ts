@@ -1,89 +1,76 @@
 import { DatabaseService } from '../services/database.service';
+import { BoardService } from '../services/board.service';
 import { Request, Response } from 'express';
-
-// console.log('[BoardController] Initializing board controller');
 
 export class BoardController {
   private databaseService: DatabaseService;
 
   constructor() {
     this.databaseService = new DatabaseService();
-    // console.log('[BoardController] Database service initialized');
   }
 
   // Get all boards for a user
   async getBoards(req: Request, res: Response) {
-    // console.log('[BoardController] Getting boards for user');
-    
     try {
-      // Get user ID from the authenticated request
       const userId = (req as any).user.id;
-      // console.log('[BoardController] User ID from auth:', userId);
-
-      const boards = await this.databaseService.getBoardsByUserId(userId);
-      // console.log('[BoardController] Boards retrieved successfully', { count: boards.length });
-      
+      const boards = await BoardService.getUserBoards(userId);
       res.status(200).json(boards);
     } catch (error) {
-      // console.error('[BoardController] Error fetching boards:', error);
+      console.error('[BoardController] Error fetching boards:', error);
       res.status(500).json({ error: 'Failed to fetch boards' });
     }
   }
 
   // Create a new board
   async createBoard(req: Request, res: Response) {
-    // console.log('[BoardController] Creating new board');
-    
     try {
-      const { title } = req.body;
-      // console.log('[BoardController] Board creation request', { title });
-      
-      // Get user ID from the authenticated request
+      const { title, description } = req.body;
       const userId = (req as any).user.id;
-      // console.log('[BoardController] User ID from auth:', userId);
 
       if (!title) {
-        // console.warn('[BoardController] Board title is required');
         return res.status(400).json({ error: 'Board title is required' });
       }
 
-      const board = await this.databaseService.createBoard({
-        title,
-        ownerId: userId,
-      });
-      
-      // console.log('[BoardController] Board created successfully', { boardId: board.id });
+      const board = await BoardService.createBoard(userId, title, description);
       res.status(201).json(board);
     } catch (error) {
-      // console.error('[BoardController] Error creating board:', error);
+      console.error('[BoardController] Error creating board:', error);
       res.status(500).json({ error: 'Failed to create board' });
     }
   }
 
   // Get a specific board
   async getBoardById(req: Request, res: Response) {
-    // console.log('[BoardController] Getting board by ID');
-    
     try {
       const { id } = req.params;
-      // console.log('[BoardController] Board ID from request:', id);
+      const userId = (req as any).user?.id;
       
       if (typeof id !== 'string') {
-        // console.warn('[BoardController] Invalid board ID');
         return res.status(400).json({ error: 'Invalid board ID' });
       }
       
-      const board = await this.databaseService.getBoardById(id);
-      
-      if (!board) {
-        // console.warn('[BoardController] Board not found', { id });
-        return res.status(404).json({ error: 'Board not found' });
+      // If user is authenticated, check permissions
+      if (userId) {
+        const board = await BoardService.getBoardById(id, userId);
+        if (!board) {
+          return res.status(404).json({ error: 'Board not found or access denied' });
+        }
+        return res.status(200).json(board);
       }
       
-      // console.log('[BoardController] Board retrieved successfully');
-      res.status(200).json(board);
+      // For unauthenticated users, try to get by share token
+      const { token } = req.query;
+      if (token && typeof token === 'string') {
+        const board = await BoardService.getBoardByShareToken(token);
+        if (!board) {
+          return res.status(404).json({ error: 'Board not found' });
+        }
+        return res.status(200).json(board);
+      }
+      
+      return res.status(401).json({ error: 'Authentication required' });
     } catch (error) {
-      // console.error('[BoardController] Error fetching board:', error);
+      console.error('[BoardController] Error fetching board:', error);
       res.status(500).json({ error: 'Failed to fetch board' });
     }
   }
@@ -177,127 +164,63 @@ export class BoardController {
 
   // Add a collaborator to a board
   async addCollaborator(req: Request, res: Response) {
-    // console.log('[BoardController] Adding collaborator to board');
-    
-    // Debug route parameters
-    // console.log('[BoardController] Request params:', req.params);
-    // console.log('[BoardController] Request body:', req.body);
-    
     try {
       const { id: boardId } = req.params;
       const { email, role } = req.body;
-      
-      // console.log('[BoardController] Add collaborator request', { boardId, email, role });
+      const userId = (req as any).user.id;
       
       if (typeof boardId !== 'string') {
-        // console.warn('[BoardController] Invalid board ID type:', typeof boardId);
         return res.status(400).json({ error: 'Invalid board ID' });
       }
 
       if (!email) {
-        // console.warn('[BoardController] Email is required');
         return res.status(400).json({ error: 'Email is required' });
       }
 
-      // Get the board to verify ownership
-      // console.log('[BoardController] Fetching board by ID:', boardId);
-      const board = await this.databaseService.getBoardById(boardId);
+      // Verify board ownership
+      const board = await BoardService.getBoardById(boardId, userId);
       if (!board) {
-        // console.warn('[BoardController] Board not found', { boardId });
         return res.status(404).json({ error: 'Board not found' });
       }
 
-      // Verify that the requesting user is the owner
-      const userId = (req as any).user.id;
-      // console.log('[BoardController] Verifying ownership', { userId, boardOwnerId: board.ownerId });
       if (board.ownerId !== userId) {
-        // console.warn('[BoardController] User is not the board owner', { userId, boardOwnerId: board.ownerId });
         return res.status(403).json({ error: 'Only the board owner can add collaborators' });
       }
 
-      // Get the user by email
-      // console.log('[BoardController] Fetching user by email:', email);
-      const user = await this.databaseService.getUserByEmail(email);
-      if (!user) {
-        console.warn('[BoardController] User not found by email', { email });
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      // Check if user is already a collaborator
-      // console.log('[BoardController] Checking existing collaborators for board:', boardId);
-      const existingCollaborators = await this.databaseService.getCollaboratorsByBoardId(boardId);
-      const isAlreadyCollaborator = existingCollaborators.some(c => c.userId === user.id);
-      
-      if (isAlreadyCollaborator) {
-        // console.warn('[BoardController] User is already a collaborator', { userId: user.id });
-        return res.status(400).json({ error: 'User is already a collaborator' });
-      }
-
-      // Add the collaborator
-      // console.log('[BoardController] Adding collaborator', { boardId, userId: user.id, role });
-      const collaborator = await this.databaseService.addCollaborator({
-        boardId,
-        userId: user.id,
-        role: role || 'editor'
-      });
-
-      // console.log('[BoardController] Collaborator added successfully', { collaboratorId: collaborator.id });
+      const collaborator = await BoardService.addCollaborator(boardId, email, role || 'editor');
       res.status(201).json(collaborator);
     } catch (error) {
-      // console.error('[BoardController] Error adding collaborator:', error);
+      console.error('[BoardController] Error adding collaborator:', error);
       res.status(500).json({ error: 'Failed to add collaborator' });
     }
   }
 
   // Remove a collaborator from a board by collaborator ID in URL parameter
   async removeCollaboratorById(req: Request, res: Response) {
-    console.log('[BoardController] Removing collaborator from board by ID');
-    
     try {
       const { id: boardId, collaboratorId } = req.params;
-      
-      console.log('[BoardController] Remove collaborator request', { boardId, collaboratorId });
+      const userId = (req as any).user.id;
       
       if (typeof boardId !== 'string') {
-        console.warn('[BoardController] Invalid board ID type:', typeof boardId);
         return res.status(400).json({ error: 'Invalid board ID' });
       }
 
       if (!collaboratorId) {
-        console.warn('[BoardController] Collaborator ID is required');
         return res.status(400).json({ error: 'Collaborator ID is required' });
       }
 
-      // Get the board to verify ownership
-      console.log('[BoardController] Fetching board by ID:', boardId);
-      const board = await this.databaseService.getBoardById(boardId);
+      // Verify board ownership
+      const board = await BoardService.getBoardById(boardId, userId);
       if (!board) {
-        console.warn('[BoardController] Board not found', { boardId });
         return res.status(404).json({ error: 'Board not found' });
       }
 
-      // Verify that the requesting user is the owner
-      const userId = (req as any).user.id;
-      console.log('[BoardController] Verifying ownership', { userId, boardOwnerId: board.ownerId });
       if (board.ownerId !== userId) {
-        console.warn('[BoardController] User is not the board owner', { userId, boardOwnerId: board.ownerId });
         return res.status(403).json({ error: 'Only the board owner can remove collaborators' });
       }
 
-      // Check if the collaborator exists and belongs to this board
-      const collaborators = await this.databaseService.getCollaboratorsByBoardId(boardId);
-      const collaborator = collaborators.find(c => c.id === collaboratorId);
-      
-      if (!collaborator) {
-        console.warn('[BoardController] Collaborator not found', { collaboratorId });
-        return res.status(404).json({ error: 'Collaborator not found' });
-      }
-
-      // Remove the collaborator
-      console.log('[BoardController] Removing collaborator', { collaboratorId });
-      const removedCollaborator = await this.databaseService.removeCollaborator(collaboratorId);
-      console.log('[BoardController] Collaborator removed successfully');
-      res.status(200).json(removedCollaborator);
+      await BoardService.removeCollaborator(boardId, collaboratorId);
+      res.status(200).json({ success: true });
     } catch (error) {
       console.error('[BoardController] Error removing collaborator:', error);
       res.status(500).json({ error: 'Failed to remove collaborator' });

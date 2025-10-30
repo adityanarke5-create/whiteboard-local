@@ -22,8 +22,10 @@ export interface Board {
 export interface BoardCollaborator {
   id: string;
   boardId: string;
-  userId: string;
+  userId: string | null;
+  email: string | null;
   role: string;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -263,23 +265,21 @@ export class DatabaseService {
   }
 
   // Board action operations
-  async createAction(data: { boardId: string; userId: string; action: string }): Promise<BoardAction> {
-    // console.log('[DatabaseService] Creating action', data);
-    
+  async createAction(data: { boardId: string; userId: string; action: string; actionType?: string; objectId?: string }): Promise<BoardAction> {
     try {
       const action = await db.boardAction.create({
         data: {
           boardId: data.boardId,
           userId: data.userId,
           action: data.action,
+          actionType: data.actionType || 'modify',
+          objectId: data.objectId,
           timestamp: new Date(),
         },
       });
       
-      // console.log('[DatabaseService] Action created successfully', { actionId: action.id });
       return action;
     } catch (error) {
-      // console.error('[DatabaseService] Error creating action:', error);
       throw error;
     }
   }

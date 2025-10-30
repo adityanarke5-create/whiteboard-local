@@ -264,8 +264,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 6.17.1
-   * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
+   * Prisma Client JS version: 6.18.0
+   * Query Engine version: 34b5a692b7bd79939a9a2c3ef97d816e749cda2f
    */
   export type PrismaVersion = {
     client: string
@@ -278,6 +278,7 @@ export namespace Prisma {
    */
 
 
+  export import Bytes = runtime.Bytes
   export import JsonObject = runtime.JsonObject
   export import JsonArray = runtime.JsonArray
   export import JsonValue = runtime.JsonValue
@@ -2473,7 +2474,11 @@ export namespace Prisma {
   export type BoardMinAggregateOutputType = {
     id: string | null
     title: string | null
+    description: string | null
+    isPublic: boolean | null
+    shareToken: string | null
     ownerId: string | null
+    lastActivity: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2481,7 +2486,11 @@ export namespace Prisma {
   export type BoardMaxAggregateOutputType = {
     id: string | null
     title: string | null
+    description: string | null
+    isPublic: boolean | null
+    shareToken: string | null
     ownerId: string | null
+    lastActivity: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2489,7 +2498,11 @@ export namespace Prisma {
   export type BoardCountAggregateOutputType = {
     id: number
     title: number
+    description: number
+    isPublic: number
+    shareToken: number
     ownerId: number
+    lastActivity: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2499,7 +2512,11 @@ export namespace Prisma {
   export type BoardMinAggregateInputType = {
     id?: true
     title?: true
+    description?: true
+    isPublic?: true
+    shareToken?: true
     ownerId?: true
+    lastActivity?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2507,7 +2524,11 @@ export namespace Prisma {
   export type BoardMaxAggregateInputType = {
     id?: true
     title?: true
+    description?: true
+    isPublic?: true
+    shareToken?: true
     ownerId?: true
+    lastActivity?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2515,7 +2536,11 @@ export namespace Prisma {
   export type BoardCountAggregateInputType = {
     id?: true
     title?: true
+    description?: true
+    isPublic?: true
+    shareToken?: true
     ownerId?: true
+    lastActivity?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2596,7 +2621,11 @@ export namespace Prisma {
   export type BoardGroupByOutputType = {
     id: string
     title: string
+    description: string | null
+    isPublic: boolean
+    shareToken: string | null
     ownerId: string
+    lastActivity: Date
     createdAt: Date
     updatedAt: Date
     _count: BoardCountAggregateOutputType | null
@@ -2621,7 +2650,11 @@ export namespace Prisma {
   export type BoardSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     title?: boolean
+    description?: boolean
+    isPublic?: boolean
+    shareToken?: boolean
     ownerId?: boolean
+    lastActivity?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
@@ -2634,7 +2667,11 @@ export namespace Prisma {
   export type BoardSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     title?: boolean
+    description?: boolean
+    isPublic?: boolean
+    shareToken?: boolean
     ownerId?: boolean
+    lastActivity?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
@@ -2643,7 +2680,11 @@ export namespace Prisma {
   export type BoardSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     title?: boolean
+    description?: boolean
+    isPublic?: boolean
+    shareToken?: boolean
     ownerId?: boolean
+    lastActivity?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
@@ -2652,12 +2693,16 @@ export namespace Prisma {
   export type BoardSelectScalar = {
     id?: boolean
     title?: boolean
+    description?: boolean
+    isPublic?: boolean
+    shareToken?: boolean
     ownerId?: boolean
+    lastActivity?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type BoardOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "ownerId" | "createdAt" | "updatedAt", ExtArgs["result"]["board"]>
+  export type BoardOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "description" | "isPublic" | "shareToken" | "ownerId" | "lastActivity" | "createdAt" | "updatedAt", ExtArgs["result"]["board"]>
   export type BoardInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     owner?: boolean | UserDefaultArgs<ExtArgs>
     collaborators?: boolean | Board$collaboratorsArgs<ExtArgs>
@@ -2683,7 +2728,11 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       title: string
+      description: string | null
+      isPublic: boolean
+      shareToken: string | null
       ownerId: string
+      lastActivity: Date
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["board"]>
@@ -3115,7 +3164,11 @@ export namespace Prisma {
   interface BoardFieldRefs {
     readonly id: FieldRef<"Board", 'String'>
     readonly title: FieldRef<"Board", 'String'>
+    readonly description: FieldRef<"Board", 'String'>
+    readonly isPublic: FieldRef<"Board", 'Boolean'>
+    readonly shareToken: FieldRef<"Board", 'String'>
     readonly ownerId: FieldRef<"Board", 'String'>
+    readonly lastActivity: FieldRef<"Board", 'DateTime'>
     readonly createdAt: FieldRef<"Board", 'DateTime'>
     readonly updatedAt: FieldRef<"Board", 'DateTime'>
   }
@@ -3618,7 +3671,9 @@ export namespace Prisma {
     id: string | null
     boardId: string | null
     userId: string | null
+    email: string | null
     role: string | null
+    status: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3627,7 +3682,9 @@ export namespace Prisma {
     id: string | null
     boardId: string | null
     userId: string | null
+    email: string | null
     role: string | null
+    status: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3636,7 +3693,9 @@ export namespace Prisma {
     id: number
     boardId: number
     userId: number
+    email: number
     role: number
+    status: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -3647,7 +3706,9 @@ export namespace Prisma {
     id?: true
     boardId?: true
     userId?: true
+    email?: true
     role?: true
+    status?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3656,7 +3717,9 @@ export namespace Prisma {
     id?: true
     boardId?: true
     userId?: true
+    email?: true
     role?: true
+    status?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3665,7 +3728,9 @@ export namespace Prisma {
     id?: true
     boardId?: true
     userId?: true
+    email?: true
     role?: true
+    status?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -3746,8 +3811,10 @@ export namespace Prisma {
   export type BoardCollaboratorGroupByOutputType = {
     id: string
     boardId: string
-    userId: string
+    userId: string | null
+    email: string | null
     role: string
+    status: string
     createdAt: Date
     updatedAt: Date
     _count: BoardCollaboratorCountAggregateOutputType | null
@@ -3773,69 +3840,79 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    email?: boolean
     role?: boolean
+    status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
+    user?: boolean | BoardCollaborator$userArgs<ExtArgs>
   }, ExtArgs["result"]["boardCollaborator"]>
 
   export type BoardCollaboratorSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    email?: boolean
     role?: boolean
+    status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
+    user?: boolean | BoardCollaborator$userArgs<ExtArgs>
   }, ExtArgs["result"]["boardCollaborator"]>
 
   export type BoardCollaboratorSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    email?: boolean
     role?: boolean
+    status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
+    user?: boolean | BoardCollaborator$userArgs<ExtArgs>
   }, ExtArgs["result"]["boardCollaborator"]>
 
   export type BoardCollaboratorSelectScalar = {
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    email?: boolean
     role?: boolean
+    status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type BoardCollaboratorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "boardId" | "userId" | "role" | "createdAt" | "updatedAt", ExtArgs["result"]["boardCollaborator"]>
+  export type BoardCollaboratorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "boardId" | "userId" | "email" | "role" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["boardCollaborator"]>
   export type BoardCollaboratorInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     board?: boolean | BoardDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
+    user?: boolean | BoardCollaborator$userArgs<ExtArgs>
   }
   export type BoardCollaboratorIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     board?: boolean | BoardDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
+    user?: boolean | BoardCollaborator$userArgs<ExtArgs>
   }
   export type BoardCollaboratorIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     board?: boolean | BoardDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
+    user?: boolean | BoardCollaborator$userArgs<ExtArgs>
   }
 
   export type $BoardCollaboratorPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "BoardCollaborator"
     objects: {
       board: Prisma.$BoardPayload<ExtArgs>
-      user: Prisma.$UserPayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       boardId: string
-      userId: string
+      userId: string | null
+      email: string | null
       role: string
+      status: string
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["boardCollaborator"]>
@@ -4233,7 +4310,7 @@ export namespace Prisma {
   export interface Prisma__BoardCollaboratorClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     board<T extends BoardDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BoardDefaultArgs<ExtArgs>>): Prisma__BoardClient<$Result.GetResult<Prisma.$BoardPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    user<T extends BoardCollaborator$userArgs<ExtArgs> = {}>(args?: Subset<T, BoardCollaborator$userArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4266,7 +4343,9 @@ export namespace Prisma {
     readonly id: FieldRef<"BoardCollaborator", 'String'>
     readonly boardId: FieldRef<"BoardCollaborator", 'String'>
     readonly userId: FieldRef<"BoardCollaborator", 'String'>
+    readonly email: FieldRef<"BoardCollaborator", 'String'>
     readonly role: FieldRef<"BoardCollaborator", 'String'>
+    readonly status: FieldRef<"BoardCollaborator", 'String'>
     readonly createdAt: FieldRef<"BoardCollaborator", 'DateTime'>
     readonly updatedAt: FieldRef<"BoardCollaborator", 'DateTime'>
   }
@@ -4665,6 +4744,25 @@ export namespace Prisma {
   }
 
   /**
+   * BoardCollaborator.user
+   */
+  export type BoardCollaborator$userArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
    * BoardCollaborator without action
    */
   export type BoardCollaboratorDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4697,6 +4795,8 @@ export namespace Prisma {
     id: string | null
     boardId: string | null
     userId: string | null
+    actionType: string | null
+    objectId: string | null
     action: string | null
     timestamp: Date | null
   }
@@ -4705,6 +4805,8 @@ export namespace Prisma {
     id: string | null
     boardId: string | null
     userId: string | null
+    actionType: string | null
+    objectId: string | null
     action: string | null
     timestamp: Date | null
   }
@@ -4713,6 +4815,8 @@ export namespace Prisma {
     id: number
     boardId: number
     userId: number
+    actionType: number
+    objectId: number
     action: number
     timestamp: number
     _all: number
@@ -4723,6 +4827,8 @@ export namespace Prisma {
     id?: true
     boardId?: true
     userId?: true
+    actionType?: true
+    objectId?: true
     action?: true
     timestamp?: true
   }
@@ -4731,6 +4837,8 @@ export namespace Prisma {
     id?: true
     boardId?: true
     userId?: true
+    actionType?: true
+    objectId?: true
     action?: true
     timestamp?: true
   }
@@ -4739,6 +4847,8 @@ export namespace Prisma {
     id?: true
     boardId?: true
     userId?: true
+    actionType?: true
+    objectId?: true
     action?: true
     timestamp?: true
     _all?: true
@@ -4820,6 +4930,8 @@ export namespace Prisma {
     id: string
     boardId: string
     userId: string
+    actionType: string
+    objectId: string | null
     action: string
     timestamp: Date
     _count: BoardActionCountAggregateOutputType | null
@@ -4845,6 +4957,8 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    actionType?: boolean
+    objectId?: boolean
     action?: boolean
     timestamp?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
@@ -4855,6 +4969,8 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    actionType?: boolean
+    objectId?: boolean
     action?: boolean
     timestamp?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
@@ -4865,6 +4981,8 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    actionType?: boolean
+    objectId?: boolean
     action?: boolean
     timestamp?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
@@ -4875,11 +4993,13 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     userId?: boolean
+    actionType?: boolean
+    objectId?: boolean
     action?: boolean
     timestamp?: boolean
   }
 
-  export type BoardActionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "boardId" | "userId" | "action" | "timestamp", ExtArgs["result"]["boardAction"]>
+  export type BoardActionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "boardId" | "userId" | "actionType" | "objectId" | "action" | "timestamp", ExtArgs["result"]["boardAction"]>
   export type BoardActionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     board?: boolean | BoardDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -4903,6 +5023,8 @@ export namespace Prisma {
       id: string
       boardId: string
       userId: string
+      actionType: string
+      objectId: string | null
       action: string
       timestamp: Date
     }, ExtArgs["result"]["boardAction"]>
@@ -5333,6 +5455,8 @@ export namespace Prisma {
     readonly id: FieldRef<"BoardAction", 'String'>
     readonly boardId: FieldRef<"BoardAction", 'String'>
     readonly userId: FieldRef<"BoardAction", 'String'>
+    readonly actionType: FieldRef<"BoardAction", 'String'>
+    readonly objectId: FieldRef<"BoardAction", 'String'>
     readonly action: FieldRef<"BoardAction", 'String'>
     readonly timestamp: FieldRef<"BoardAction", 'DateTime'>
   }
@@ -5755,14 +5879,26 @@ export namespace Prisma {
 
   export type AggregateBoardSnapshot = {
     _count: BoardSnapshotCountAggregateOutputType | null
+    _avg: BoardSnapshotAvgAggregateOutputType | null
+    _sum: BoardSnapshotSumAggregateOutputType | null
     _min: BoardSnapshotMinAggregateOutputType | null
     _max: BoardSnapshotMaxAggregateOutputType | null
+  }
+
+  export type BoardSnapshotAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type BoardSnapshotSumAggregateOutputType = {
+    version: number | null
   }
 
   export type BoardSnapshotMinAggregateOutputType = {
     id: string | null
     boardId: string | null
     data: string | null
+    version: number | null
+    isAuto: boolean | null
     timestamp: Date | null
   }
 
@@ -5770,6 +5906,8 @@ export namespace Prisma {
     id: string | null
     boardId: string | null
     data: string | null
+    version: number | null
+    isAuto: boolean | null
     timestamp: Date | null
   }
 
@@ -5777,15 +5915,27 @@ export namespace Prisma {
     id: number
     boardId: number
     data: number
+    version: number
+    isAuto: number
     timestamp: number
     _all: number
   }
 
 
+  export type BoardSnapshotAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type BoardSnapshotSumAggregateInputType = {
+    version?: true
+  }
+
   export type BoardSnapshotMinAggregateInputType = {
     id?: true
     boardId?: true
     data?: true
+    version?: true
+    isAuto?: true
     timestamp?: true
   }
 
@@ -5793,6 +5943,8 @@ export namespace Prisma {
     id?: true
     boardId?: true
     data?: true
+    version?: true
+    isAuto?: true
     timestamp?: true
   }
 
@@ -5800,6 +5952,8 @@ export namespace Prisma {
     id?: true
     boardId?: true
     data?: true
+    version?: true
+    isAuto?: true
     timestamp?: true
     _all?: true
   }
@@ -5842,6 +5996,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: BoardSnapshotAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: BoardSnapshotSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: BoardSnapshotMinAggregateInputType
@@ -5872,6 +6038,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: BoardSnapshotCountAggregateInputType | true
+    _avg?: BoardSnapshotAvgAggregateInputType
+    _sum?: BoardSnapshotSumAggregateInputType
     _min?: BoardSnapshotMinAggregateInputType
     _max?: BoardSnapshotMaxAggregateInputType
   }
@@ -5880,8 +6048,12 @@ export namespace Prisma {
     id: string
     boardId: string
     data: string
+    version: number
+    isAuto: boolean
     timestamp: Date
     _count: BoardSnapshotCountAggregateOutputType | null
+    _avg: BoardSnapshotAvgAggregateOutputType | null
+    _sum: BoardSnapshotSumAggregateOutputType | null
     _min: BoardSnapshotMinAggregateOutputType | null
     _max: BoardSnapshotMaxAggregateOutputType | null
   }
@@ -5904,6 +6076,8 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     data?: boolean
+    version?: boolean
+    isAuto?: boolean
     timestamp?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["boardSnapshot"]>
@@ -5912,6 +6086,8 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     data?: boolean
+    version?: boolean
+    isAuto?: boolean
     timestamp?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["boardSnapshot"]>
@@ -5920,6 +6096,8 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     data?: boolean
+    version?: boolean
+    isAuto?: boolean
     timestamp?: boolean
     board?: boolean | BoardDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["boardSnapshot"]>
@@ -5928,10 +6106,12 @@ export namespace Prisma {
     id?: boolean
     boardId?: boolean
     data?: boolean
+    version?: boolean
+    isAuto?: boolean
     timestamp?: boolean
   }
 
-  export type BoardSnapshotOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "boardId" | "data" | "timestamp", ExtArgs["result"]["boardSnapshot"]>
+  export type BoardSnapshotOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "boardId" | "data" | "version" | "isAuto" | "timestamp", ExtArgs["result"]["boardSnapshot"]>
   export type BoardSnapshotInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     board?: boolean | BoardDefaultArgs<ExtArgs>
   }
@@ -5951,6 +6131,8 @@ export namespace Prisma {
       id: string
       boardId: string
       data: string
+      version: number
+      isAuto: boolean
       timestamp: Date
     }, ExtArgs["result"]["boardSnapshot"]>
     composites: {}
@@ -6379,6 +6561,8 @@ export namespace Prisma {
     readonly id: FieldRef<"BoardSnapshot", 'String'>
     readonly boardId: FieldRef<"BoardSnapshot", 'String'>
     readonly data: FieldRef<"BoardSnapshot", 'String'>
+    readonly version: FieldRef<"BoardSnapshot", 'Int'>
+    readonly isAuto: FieldRef<"BoardSnapshot", 'Boolean'>
     readonly timestamp: FieldRef<"BoardSnapshot", 'DateTime'>
   }
     
@@ -6823,7 +7007,11 @@ export namespace Prisma {
   export const BoardScalarFieldEnum: {
     id: 'id',
     title: 'title',
+    description: 'description',
+    isPublic: 'isPublic',
+    shareToken: 'shareToken',
     ownerId: 'ownerId',
+    lastActivity: 'lastActivity',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -6835,7 +7023,9 @@ export namespace Prisma {
     id: 'id',
     boardId: 'boardId',
     userId: 'userId',
+    email: 'email',
     role: 'role',
+    status: 'status',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -6847,6 +7037,8 @@ export namespace Prisma {
     id: 'id',
     boardId: 'boardId',
     userId: 'userId',
+    actionType: 'actionType',
+    objectId: 'objectId',
     action: 'action',
     timestamp: 'timestamp'
   };
@@ -6858,6 +7050,8 @@ export namespace Prisma {
     id: 'id',
     boardId: 'boardId',
     data: 'data',
+    version: 'version',
+    isAuto: 'isAuto',
     timestamp: 'timestamp'
   };
 
@@ -6922,6 +7116,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -6932,6 +7133,20 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
   /**
    * Deep Input Types
@@ -7010,7 +7225,11 @@ export namespace Prisma {
     NOT?: BoardWhereInput | BoardWhereInput[]
     id?: StringFilter<"Board"> | string
     title?: StringFilter<"Board"> | string
+    description?: StringNullableFilter<"Board"> | string | null
+    isPublic?: BoolFilter<"Board"> | boolean
+    shareToken?: StringNullableFilter<"Board"> | string | null
     ownerId?: StringFilter<"Board"> | string
+    lastActivity?: DateTimeFilter<"Board"> | Date | string
     createdAt?: DateTimeFilter<"Board"> | Date | string
     updatedAt?: DateTimeFilter<"Board"> | Date | string
     owner?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -7022,7 +7241,11 @@ export namespace Prisma {
   export type BoardOrderByWithRelationInput = {
     id?: SortOrder
     title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    isPublic?: SortOrder
+    shareToken?: SortOrderInput | SortOrder
     ownerId?: SortOrder
+    lastActivity?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     owner?: UserOrderByWithRelationInput
@@ -7033,23 +7256,31 @@ export namespace Prisma {
 
   export type BoardWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    shareToken?: string
     AND?: BoardWhereInput | BoardWhereInput[]
     OR?: BoardWhereInput[]
     NOT?: BoardWhereInput | BoardWhereInput[]
     title?: StringFilter<"Board"> | string
+    description?: StringNullableFilter<"Board"> | string | null
+    isPublic?: BoolFilter<"Board"> | boolean
     ownerId?: StringFilter<"Board"> | string
+    lastActivity?: DateTimeFilter<"Board"> | Date | string
     createdAt?: DateTimeFilter<"Board"> | Date | string
     updatedAt?: DateTimeFilter<"Board"> | Date | string
     owner?: XOR<UserScalarRelationFilter, UserWhereInput>
     collaborators?: BoardCollaboratorListRelationFilter
     actions?: BoardActionListRelationFilter
     snapshots?: BoardSnapshotListRelationFilter
-  }, "id">
+  }, "id" | "shareToken">
 
   export type BoardOrderByWithAggregationInput = {
     id?: SortOrder
     title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    isPublic?: SortOrder
+    shareToken?: SortOrderInput | SortOrder
     ownerId?: SortOrder
+    lastActivity?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: BoardCountOrderByAggregateInput
@@ -7063,7 +7294,11 @@ export namespace Prisma {
     NOT?: BoardScalarWhereWithAggregatesInput | BoardScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Board"> | string
     title?: StringWithAggregatesFilter<"Board"> | string
+    description?: StringNullableWithAggregatesFilter<"Board"> | string | null
+    isPublic?: BoolWithAggregatesFilter<"Board"> | boolean
+    shareToken?: StringNullableWithAggregatesFilter<"Board"> | string | null
     ownerId?: StringWithAggregatesFilter<"Board"> | string
+    lastActivity?: DateTimeWithAggregatesFilter<"Board"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"Board"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Board"> | Date | string
   }
@@ -7074,19 +7309,23 @@ export namespace Prisma {
     NOT?: BoardCollaboratorWhereInput | BoardCollaboratorWhereInput[]
     id?: StringFilter<"BoardCollaborator"> | string
     boardId?: StringFilter<"BoardCollaborator"> | string
-    userId?: StringFilter<"BoardCollaborator"> | string
+    userId?: StringNullableFilter<"BoardCollaborator"> | string | null
+    email?: StringNullableFilter<"BoardCollaborator"> | string | null
     role?: StringFilter<"BoardCollaborator"> | string
+    status?: StringFilter<"BoardCollaborator"> | string
     createdAt?: DateTimeFilter<"BoardCollaborator"> | Date | string
     updatedAt?: DateTimeFilter<"BoardCollaborator"> | Date | string
     board?: XOR<BoardScalarRelationFilter, BoardWhereInput>
-    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    user?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }
 
   export type BoardCollaboratorOrderByWithRelationInput = {
     id?: SortOrder
     boardId?: SortOrder
-    userId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    email?: SortOrderInput | SortOrder
     role?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     board?: BoardOrderByWithRelationInput
@@ -7096,23 +7335,28 @@ export namespace Prisma {
   export type BoardCollaboratorWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     boardId_userId?: BoardCollaboratorBoardIdUserIdCompoundUniqueInput
+    boardId_email?: BoardCollaboratorBoardIdEmailCompoundUniqueInput
     AND?: BoardCollaboratorWhereInput | BoardCollaboratorWhereInput[]
     OR?: BoardCollaboratorWhereInput[]
     NOT?: BoardCollaboratorWhereInput | BoardCollaboratorWhereInput[]
     boardId?: StringFilter<"BoardCollaborator"> | string
-    userId?: StringFilter<"BoardCollaborator"> | string
+    userId?: StringNullableFilter<"BoardCollaborator"> | string | null
+    email?: StringNullableFilter<"BoardCollaborator"> | string | null
     role?: StringFilter<"BoardCollaborator"> | string
+    status?: StringFilter<"BoardCollaborator"> | string
     createdAt?: DateTimeFilter<"BoardCollaborator"> | Date | string
     updatedAt?: DateTimeFilter<"BoardCollaborator"> | Date | string
     board?: XOR<BoardScalarRelationFilter, BoardWhereInput>
-    user?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id" | "boardId_userId">
+    user?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "id" | "boardId_userId" | "boardId_email">
 
   export type BoardCollaboratorOrderByWithAggregationInput = {
     id?: SortOrder
     boardId?: SortOrder
-    userId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    email?: SortOrderInput | SortOrder
     role?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: BoardCollaboratorCountOrderByAggregateInput
@@ -7126,8 +7370,10 @@ export namespace Prisma {
     NOT?: BoardCollaboratorScalarWhereWithAggregatesInput | BoardCollaboratorScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"BoardCollaborator"> | string
     boardId?: StringWithAggregatesFilter<"BoardCollaborator"> | string
-    userId?: StringWithAggregatesFilter<"BoardCollaborator"> | string
+    userId?: StringNullableWithAggregatesFilter<"BoardCollaborator"> | string | null
+    email?: StringNullableWithAggregatesFilter<"BoardCollaborator"> | string | null
     role?: StringWithAggregatesFilter<"BoardCollaborator"> | string
+    status?: StringWithAggregatesFilter<"BoardCollaborator"> | string
     createdAt?: DateTimeWithAggregatesFilter<"BoardCollaborator"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"BoardCollaborator"> | Date | string
   }
@@ -7139,6 +7385,8 @@ export namespace Prisma {
     id?: StringFilter<"BoardAction"> | string
     boardId?: StringFilter<"BoardAction"> | string
     userId?: StringFilter<"BoardAction"> | string
+    actionType?: StringFilter<"BoardAction"> | string
+    objectId?: StringNullableFilter<"BoardAction"> | string | null
     action?: StringFilter<"BoardAction"> | string
     timestamp?: DateTimeFilter<"BoardAction"> | Date | string
     board?: XOR<BoardScalarRelationFilter, BoardWhereInput>
@@ -7149,6 +7397,8 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    actionType?: SortOrder
+    objectId?: SortOrderInput | SortOrder
     action?: SortOrder
     timestamp?: SortOrder
     board?: BoardOrderByWithRelationInput
@@ -7162,6 +7412,8 @@ export namespace Prisma {
     NOT?: BoardActionWhereInput | BoardActionWhereInput[]
     boardId?: StringFilter<"BoardAction"> | string
     userId?: StringFilter<"BoardAction"> | string
+    actionType?: StringFilter<"BoardAction"> | string
+    objectId?: StringNullableFilter<"BoardAction"> | string | null
     action?: StringFilter<"BoardAction"> | string
     timestamp?: DateTimeFilter<"BoardAction"> | Date | string
     board?: XOR<BoardScalarRelationFilter, BoardWhereInput>
@@ -7172,6 +7424,8 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    actionType?: SortOrder
+    objectId?: SortOrderInput | SortOrder
     action?: SortOrder
     timestamp?: SortOrder
     _count?: BoardActionCountOrderByAggregateInput
@@ -7186,6 +7440,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"BoardAction"> | string
     boardId?: StringWithAggregatesFilter<"BoardAction"> | string
     userId?: StringWithAggregatesFilter<"BoardAction"> | string
+    actionType?: StringWithAggregatesFilter<"BoardAction"> | string
+    objectId?: StringNullableWithAggregatesFilter<"BoardAction"> | string | null
     action?: StringWithAggregatesFilter<"BoardAction"> | string
     timestamp?: DateTimeWithAggregatesFilter<"BoardAction"> | Date | string
   }
@@ -7197,6 +7453,8 @@ export namespace Prisma {
     id?: StringFilter<"BoardSnapshot"> | string
     boardId?: StringFilter<"BoardSnapshot"> | string
     data?: StringFilter<"BoardSnapshot"> | string
+    version?: IntFilter<"BoardSnapshot"> | number
+    isAuto?: BoolFilter<"BoardSnapshot"> | boolean
     timestamp?: DateTimeFilter<"BoardSnapshot"> | Date | string
     board?: XOR<BoardScalarRelationFilter, BoardWhereInput>
   }
@@ -7205,6 +7463,8 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     data?: SortOrder
+    version?: SortOrder
+    isAuto?: SortOrder
     timestamp?: SortOrder
     board?: BoardOrderByWithRelationInput
   }
@@ -7216,6 +7476,8 @@ export namespace Prisma {
     NOT?: BoardSnapshotWhereInput | BoardSnapshotWhereInput[]
     boardId?: StringFilter<"BoardSnapshot"> | string
     data?: StringFilter<"BoardSnapshot"> | string
+    version?: IntFilter<"BoardSnapshot"> | number
+    isAuto?: BoolFilter<"BoardSnapshot"> | boolean
     timestamp?: DateTimeFilter<"BoardSnapshot"> | Date | string
     board?: XOR<BoardScalarRelationFilter, BoardWhereInput>
   }, "id">
@@ -7224,10 +7486,14 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     data?: SortOrder
+    version?: SortOrder
+    isAuto?: SortOrder
     timestamp?: SortOrder
     _count?: BoardSnapshotCountOrderByAggregateInput
+    _avg?: BoardSnapshotAvgOrderByAggregateInput
     _max?: BoardSnapshotMaxOrderByAggregateInput
     _min?: BoardSnapshotMinOrderByAggregateInput
+    _sum?: BoardSnapshotSumOrderByAggregateInput
   }
 
   export type BoardSnapshotScalarWhereWithAggregatesInput = {
@@ -7237,6 +7503,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"BoardSnapshot"> | string
     boardId?: StringWithAggregatesFilter<"BoardSnapshot"> | string
     data?: StringWithAggregatesFilter<"BoardSnapshot"> | string
+    version?: IntWithAggregatesFilter<"BoardSnapshot"> | number
+    isAuto?: BoolWithAggregatesFilter<"BoardSnapshot"> | boolean
     timestamp?: DateTimeWithAggregatesFilter<"BoardSnapshot"> | Date | string
   }
 
@@ -7318,6 +7586,10 @@ export namespace Prisma {
   export type BoardCreateInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutBoardsInput
@@ -7329,7 +7601,11 @@ export namespace Prisma {
   export type BoardUncheckedCreateInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
     ownerId: string
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborators?: BoardCollaboratorUncheckedCreateNestedManyWithoutBoardInput
@@ -7340,6 +7616,10 @@ export namespace Prisma {
   export type BoardUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutBoardsNestedInput
@@ -7351,7 +7631,11 @@ export namespace Prisma {
   export type BoardUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborators?: BoardCollaboratorUncheckedUpdateManyWithoutBoardNestedInput
@@ -7362,7 +7646,11 @@ export namespace Prisma {
   export type BoardCreateManyInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
     ownerId: string
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -7370,6 +7658,10 @@ export namespace Prisma {
   export type BoardUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7377,43 +7669,55 @@ export namespace Prisma {
   export type BoardUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardCollaboratorCreateInput = {
     id?: string
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     board: BoardCreateNestedOneWithoutCollaboratorsInput
-    user: UserCreateNestedOneWithoutCollaborationsInput
+    user?: UserCreateNestedOneWithoutCollaborationsInput
   }
 
   export type BoardCollaboratorUncheckedCreateInput = {
     id?: string
     boardId: string
-    userId: string
+    userId?: string | null
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type BoardCollaboratorUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     board?: BoardUpdateOneRequiredWithoutCollaboratorsNestedInput
-    user?: UserUpdateOneRequiredWithoutCollaborationsNestedInput
+    user?: UserUpdateOneWithoutCollaborationsNestedInput
   }
 
   export type BoardCollaboratorUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7421,15 +7725,19 @@ export namespace Prisma {
   export type BoardCollaboratorCreateManyInput = {
     id?: string
     boardId: string
-    userId: string
+    userId?: string | null
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type BoardCollaboratorUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7437,14 +7745,18 @@ export namespace Prisma {
   export type BoardCollaboratorUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardActionCreateInput = {
     id?: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
     board: BoardCreateNestedOneWithoutActionsInput
@@ -7455,12 +7767,16 @@ export namespace Prisma {
     id?: string
     boardId: string
     userId: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
   }
 
   export type BoardActionUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     board?: BoardUpdateOneRequiredWithoutActionsNestedInput
@@ -7471,6 +7787,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7479,12 +7797,16 @@ export namespace Prisma {
     id?: string
     boardId: string
     userId: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
   }
 
   export type BoardActionUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7493,6 +7815,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7500,6 +7824,8 @@ export namespace Prisma {
   export type BoardSnapshotCreateInput = {
     id?: string
     data: string
+    version?: number
+    isAuto?: boolean
     timestamp?: Date | string
     board: BoardCreateNestedOneWithoutSnapshotsInput
   }
@@ -7508,12 +7834,16 @@ export namespace Prisma {
     id?: string
     boardId: string
     data: string
+    version?: number
+    isAuto?: boolean
     timestamp?: Date | string
   }
 
   export type BoardSnapshotUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     data?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    isAuto?: BoolFieldUpdateOperationsInput | boolean
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     board?: BoardUpdateOneRequiredWithoutSnapshotsNestedInput
   }
@@ -7522,6 +7852,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
     data?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    isAuto?: BoolFieldUpdateOperationsInput | boolean
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7529,12 +7861,16 @@ export namespace Prisma {
     id?: string
     boardId: string
     data: string
+    version?: number
+    isAuto?: boolean
     timestamp?: Date | string
   }
 
   export type BoardSnapshotUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     data?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    isAuto?: BoolFieldUpdateOperationsInput | boolean
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7542,6 +7878,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
     data?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    isAuto?: BoolFieldUpdateOperationsInput | boolean
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7698,6 +8036,11 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
@@ -7716,7 +8059,11 @@ export namespace Prisma {
   export type BoardCountOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
+    description?: SortOrder
+    isPublic?: SortOrder
+    shareToken?: SortOrder
     ownerId?: SortOrder
+    lastActivity?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -7724,7 +8071,11 @@ export namespace Prisma {
   export type BoardMaxOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
+    description?: SortOrder
+    isPublic?: SortOrder
+    shareToken?: SortOrder
     ownerId?: SortOrder
+    lastActivity?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -7732,9 +8083,21 @@ export namespace Prisma {
   export type BoardMinOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
+    description?: SortOrder
+    isPublic?: SortOrder
+    shareToken?: SortOrder
     ownerId?: SortOrder
+    lastActivity?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type BoardScalarRelationFilter = {
@@ -7742,16 +8105,28 @@ export namespace Prisma {
     isNot?: BoardWhereInput
   }
 
+  export type UserNullableScalarRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
   export type BoardCollaboratorBoardIdUserIdCompoundUniqueInput = {
     boardId: string
     userId: string
+  }
+
+  export type BoardCollaboratorBoardIdEmailCompoundUniqueInput = {
+    boardId: string
+    email: string
   }
 
   export type BoardCollaboratorCountOrderByAggregateInput = {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    email?: SortOrder
     role?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -7760,7 +8135,9 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    email?: SortOrder
     role?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -7769,7 +8146,9 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    email?: SortOrder
     role?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -7778,6 +8157,8 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    actionType?: SortOrder
+    objectId?: SortOrder
     action?: SortOrder
     timestamp?: SortOrder
   }
@@ -7786,6 +8167,8 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    actionType?: SortOrder
+    objectId?: SortOrder
     action?: SortOrder
     timestamp?: SortOrder
   }
@@ -7794,21 +8177,42 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     userId?: SortOrder
+    actionType?: SortOrder
+    objectId?: SortOrder
     action?: SortOrder
     timestamp?: SortOrder
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type BoardSnapshotCountOrderByAggregateInput = {
     id?: SortOrder
     boardId?: SortOrder
     data?: SortOrder
+    version?: SortOrder
+    isAuto?: SortOrder
     timestamp?: SortOrder
+  }
+
+  export type BoardSnapshotAvgOrderByAggregateInput = {
+    version?: SortOrder
   }
 
   export type BoardSnapshotMaxOrderByAggregateInput = {
     id?: SortOrder
     boardId?: SortOrder
     data?: SortOrder
+    version?: SortOrder
+    isAuto?: SortOrder
     timestamp?: SortOrder
   }
 
@@ -7816,7 +8220,29 @@ export namespace Prisma {
     id?: SortOrder
     boardId?: SortOrder
     data?: SortOrder
+    version?: SortOrder
+    isAuto?: SortOrder
     timestamp?: SortOrder
+  }
+
+  export type BoardSnapshotSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type BoardCreateNestedManyWithoutOwnerInput = {
@@ -8005,6 +8431,10 @@ export namespace Prisma {
     connect?: BoardSnapshotWhereUniqueInput | BoardSnapshotWhereUniqueInput[]
   }
 
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
   export type UserUpdateOneRequiredWithoutBoardsNestedInput = {
     create?: XOR<UserCreateWithoutBoardsInput, UserUncheckedCreateWithoutBoardsInput>
     connectOrCreate?: UserCreateOrConnectWithoutBoardsInput
@@ -8117,10 +8547,12 @@ export namespace Prisma {
     update?: XOR<XOR<BoardUpdateToOneWithWhereWithoutCollaboratorsInput, BoardUpdateWithoutCollaboratorsInput>, BoardUncheckedUpdateWithoutCollaboratorsInput>
   }
 
-  export type UserUpdateOneRequiredWithoutCollaborationsNestedInput = {
+  export type UserUpdateOneWithoutCollaborationsNestedInput = {
     create?: XOR<UserCreateWithoutCollaborationsInput, UserUncheckedCreateWithoutCollaborationsInput>
     connectOrCreate?: UserCreateOrConnectWithoutCollaborationsInput
     upsert?: UserUpsertWithoutCollaborationsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCollaborationsInput, UserUpdateWithoutCollaborationsInput>, UserUncheckedUpdateWithoutCollaborationsInput>
   }
@@ -8157,6 +8589,14 @@ export namespace Prisma {
     create?: XOR<BoardCreateWithoutSnapshotsInput, BoardUncheckedCreateWithoutSnapshotsInput>
     connectOrCreate?: BoardCreateOrConnectWithoutSnapshotsInput
     connect?: BoardWhereUniqueInput
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
   }
 
   export type BoardUpdateOneRequiredWithoutSnapshotsNestedInput = {
@@ -8276,9 +8716,53 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type BoardCreateWithoutOwnerInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborators?: BoardCollaboratorCreateNestedManyWithoutBoardInput
@@ -8289,6 +8773,10 @@ export namespace Prisma {
   export type BoardUncheckedCreateWithoutOwnerInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborators?: BoardCollaboratorUncheckedCreateNestedManyWithoutBoardInput
@@ -8308,7 +8796,9 @@ export namespace Prisma {
 
   export type BoardCollaboratorCreateWithoutUserInput = {
     id?: string
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     board: BoardCreateNestedOneWithoutCollaboratorsInput
@@ -8317,7 +8807,9 @@ export namespace Prisma {
   export type BoardCollaboratorUncheckedCreateWithoutUserInput = {
     id?: string
     boardId: string
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8334,6 +8826,8 @@ export namespace Prisma {
 
   export type BoardActionCreateWithoutUserInput = {
     id?: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
     board: BoardCreateNestedOneWithoutActionsInput
@@ -8342,6 +8836,8 @@ export namespace Prisma {
   export type BoardActionUncheckedCreateWithoutUserInput = {
     id?: string
     boardId: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
   }
@@ -8378,7 +8874,11 @@ export namespace Prisma {
     NOT?: BoardScalarWhereInput | BoardScalarWhereInput[]
     id?: StringFilter<"Board"> | string
     title?: StringFilter<"Board"> | string
+    description?: StringNullableFilter<"Board"> | string | null
+    isPublic?: BoolFilter<"Board"> | boolean
+    shareToken?: StringNullableFilter<"Board"> | string | null
     ownerId?: StringFilter<"Board"> | string
+    lastActivity?: DateTimeFilter<"Board"> | Date | string
     createdAt?: DateTimeFilter<"Board"> | Date | string
     updatedAt?: DateTimeFilter<"Board"> | Date | string
   }
@@ -8405,8 +8905,10 @@ export namespace Prisma {
     NOT?: BoardCollaboratorScalarWhereInput | BoardCollaboratorScalarWhereInput[]
     id?: StringFilter<"BoardCollaborator"> | string
     boardId?: StringFilter<"BoardCollaborator"> | string
-    userId?: StringFilter<"BoardCollaborator"> | string
+    userId?: StringNullableFilter<"BoardCollaborator"> | string | null
+    email?: StringNullableFilter<"BoardCollaborator"> | string | null
     role?: StringFilter<"BoardCollaborator"> | string
+    status?: StringFilter<"BoardCollaborator"> | string
     createdAt?: DateTimeFilter<"BoardCollaborator"> | Date | string
     updatedAt?: DateTimeFilter<"BoardCollaborator"> | Date | string
   }
@@ -8434,6 +8936,8 @@ export namespace Prisma {
     id?: StringFilter<"BoardAction"> | string
     boardId?: StringFilter<"BoardAction"> | string
     userId?: StringFilter<"BoardAction"> | string
+    actionType?: StringFilter<"BoardAction"> | string
+    objectId?: StringNullableFilter<"BoardAction"> | string | null
     action?: StringFilter<"BoardAction"> | string
     timestamp?: DateTimeFilter<"BoardAction"> | Date | string
   }
@@ -8467,16 +8971,20 @@ export namespace Prisma {
 
   export type BoardCollaboratorCreateWithoutBoardInput = {
     id?: string
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    user: UserCreateNestedOneWithoutCollaborationsInput
+    user?: UserCreateNestedOneWithoutCollaborationsInput
   }
 
   export type BoardCollaboratorUncheckedCreateWithoutBoardInput = {
     id?: string
-    userId: string
+    userId?: string | null
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8493,6 +9001,8 @@ export namespace Prisma {
 
   export type BoardActionCreateWithoutBoardInput = {
     id?: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
     user: UserCreateNestedOneWithoutBoardActionInput
@@ -8501,6 +9011,8 @@ export namespace Prisma {
   export type BoardActionUncheckedCreateWithoutBoardInput = {
     id?: string
     userId: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
   }
@@ -8518,12 +9030,16 @@ export namespace Prisma {
   export type BoardSnapshotCreateWithoutBoardInput = {
     id?: string
     data: string
+    version?: number
+    isAuto?: boolean
     timestamp?: Date | string
   }
 
   export type BoardSnapshotUncheckedCreateWithoutBoardInput = {
     id?: string
     data: string
+    version?: number
+    isAuto?: boolean
     timestamp?: Date | string
   }
 
@@ -8625,12 +9141,18 @@ export namespace Prisma {
     id?: StringFilter<"BoardSnapshot"> | string
     boardId?: StringFilter<"BoardSnapshot"> | string
     data?: StringFilter<"BoardSnapshot"> | string
+    version?: IntFilter<"BoardSnapshot"> | number
+    isAuto?: BoolFilter<"BoardSnapshot"> | boolean
     timestamp?: DateTimeFilter<"BoardSnapshot"> | Date | string
   }
 
   export type BoardCreateWithoutCollaboratorsInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutBoardsInput
@@ -8641,7 +9163,11 @@ export namespace Prisma {
   export type BoardUncheckedCreateWithoutCollaboratorsInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
     ownerId: string
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     actions?: BoardActionUncheckedCreateNestedManyWithoutBoardInput
@@ -8694,6 +9220,10 @@ export namespace Prisma {
   export type BoardUpdateWithoutCollaboratorsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutBoardsNestedInput
@@ -8704,7 +9234,11 @@ export namespace Prisma {
   export type BoardUncheckedUpdateWithoutCollaboratorsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     actions?: BoardActionUncheckedUpdateManyWithoutBoardNestedInput
@@ -8747,6 +9281,10 @@ export namespace Prisma {
   export type BoardCreateWithoutActionsInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutBoardsInput
@@ -8757,7 +9295,11 @@ export namespace Prisma {
   export type BoardUncheckedCreateWithoutActionsInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
     ownerId: string
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborators?: BoardCollaboratorUncheckedCreateNestedManyWithoutBoardInput
@@ -8810,6 +9352,10 @@ export namespace Prisma {
   export type BoardUpdateWithoutActionsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutBoardsNestedInput
@@ -8820,7 +9366,11 @@ export namespace Prisma {
   export type BoardUncheckedUpdateWithoutActionsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborators?: BoardCollaboratorUncheckedUpdateManyWithoutBoardNestedInput
@@ -8863,6 +9413,10 @@ export namespace Prisma {
   export type BoardCreateWithoutSnapshotsInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutBoardsInput
@@ -8873,7 +9427,11 @@ export namespace Prisma {
   export type BoardUncheckedCreateWithoutSnapshotsInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
     ownerId: string
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborators?: BoardCollaboratorUncheckedCreateNestedManyWithoutBoardInput
@@ -8899,6 +9457,10 @@ export namespace Prisma {
   export type BoardUpdateWithoutSnapshotsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutBoardsNestedInput
@@ -8909,7 +9471,11 @@ export namespace Prisma {
   export type BoardUncheckedUpdateWithoutSnapshotsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborators?: BoardCollaboratorUncheckedUpdateManyWithoutBoardNestedInput
@@ -8919,6 +9485,10 @@ export namespace Prisma {
   export type BoardCreateManyOwnerInput = {
     id?: string
     title: string
+    description?: string | null
+    isPublic?: boolean
+    shareToken?: string | null
+    lastActivity?: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8926,7 +9496,9 @@ export namespace Prisma {
   export type BoardCollaboratorCreateManyUserInput = {
     id?: string
     boardId: string
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8934,6 +9506,8 @@ export namespace Prisma {
   export type BoardActionCreateManyUserInput = {
     id?: string
     boardId: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
   }
@@ -8941,6 +9515,10 @@ export namespace Prisma {
   export type BoardUpdateWithoutOwnerInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborators?: BoardCollaboratorUpdateManyWithoutBoardNestedInput
@@ -8951,6 +9529,10 @@ export namespace Prisma {
   export type BoardUncheckedUpdateWithoutOwnerInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborators?: BoardCollaboratorUncheckedUpdateManyWithoutBoardNestedInput
@@ -8961,13 +9543,19 @@ export namespace Prisma {
   export type BoardUncheckedUpdateManyWithoutOwnerInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isPublic?: BoolFieldUpdateOperationsInput | boolean
+    shareToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastActivity?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardCollaboratorUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     board?: BoardUpdateOneRequiredWithoutCollaboratorsNestedInput
@@ -8976,7 +9564,9 @@ export namespace Prisma {
   export type BoardCollaboratorUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -8984,13 +9574,17 @@ export namespace Prisma {
   export type BoardCollaboratorUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardActionUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     board?: BoardUpdateOneRequiredWithoutActionsNestedInput
@@ -8999,6 +9593,8 @@ export namespace Prisma {
   export type BoardActionUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9006,14 +9602,18 @@ export namespace Prisma {
   export type BoardActionUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     boardId?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardCollaboratorCreateManyBoardInput = {
     id?: string
-    userId: string
+    userId?: string | null
+    email?: string | null
     role?: string
+    status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -9021,6 +9621,8 @@ export namespace Prisma {
   export type BoardActionCreateManyBoardInput = {
     id?: string
     userId: string
+    actionType: string
+    objectId?: string | null
     action: string
     timestamp?: Date | string
   }
@@ -9028,35 +9630,45 @@ export namespace Prisma {
   export type BoardSnapshotCreateManyBoardInput = {
     id?: string
     data: string
+    version?: number
+    isAuto?: boolean
     timestamp?: Date | string
   }
 
   export type BoardCollaboratorUpdateWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    user?: UserUpdateOneRequiredWithoutCollaborationsNestedInput
+    user?: UserUpdateOneWithoutCollaborationsNestedInput
   }
 
   export type BoardCollaboratorUncheckedUpdateWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardCollaboratorUncheckedUpdateManyWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     role?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardActionUpdateWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutBoardActionNestedInput
@@ -9065,6 +9677,8 @@ export namespace Prisma {
   export type BoardActionUncheckedUpdateWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9072,6 +9686,8 @@ export namespace Prisma {
   export type BoardActionUncheckedUpdateManyWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    actionType?: StringFieldUpdateOperationsInput | string
+    objectId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9079,18 +9695,24 @@ export namespace Prisma {
   export type BoardSnapshotUpdateWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
     data?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    isAuto?: BoolFieldUpdateOperationsInput | boolean
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardSnapshotUncheckedUpdateWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
     data?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    isAuto?: BoolFieldUpdateOperationsInput | boolean
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BoardSnapshotUncheckedUpdateManyWithoutBoardInput = {
     id?: StringFieldUpdateOperationsInput | string
     data?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    isAuto?: BoolFieldUpdateOperationsInput | boolean
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

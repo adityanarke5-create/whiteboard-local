@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
+import { FiUsers, FiDownload, FiSave, FiEdit3, FiShare2, FiZap, FiLayers, FiMouse } from 'react-icons/fi';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -13,29 +14,30 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <span className="text-2xl font-bold text-indigo-600">CollabBoard</span>
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <FiEdit3 className="text-white text-lg" />
               </div>
+              <span className="text-xl font-bold text-gray-900">CollabBoard</span>
             </div>
             <div className="flex items-center space-x-4">
               {loading ? (
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               ) : isAuthenticated ? (
-                <Link href="/dashboard" className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors">
+                <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition">
                   Dashboard
                 </Link>
               ) : (
                 <>
-                  <Link href="/auth/signin" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+                  <Link href="/auth/signin" className="text-gray-600 hover:text-gray-900 font-medium">
                     Sign In
                   </Link>
-                  <Link href="/auth/signup" className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors">
+                  <Link href="/auth/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition">
                     Get Started
                   </Link>
                 </>
@@ -43,110 +45,114 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-        <div className="text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6">
-            Collaborate in real-time on a <span className="text-indigo-600">shared whiteboard</span>
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
-            Create, draw, and collaborate with your team on a limitless canvas. Perfect for brainstorming, planning, and creative sessions.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            {isAuthenticated ? (
-              <Link href="/dashboard" className="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-700 transition-colors">
-                Go to Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link href="/auth/signup" className="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-700 transition-colors">
-                  Start Free Trial
-                </Link>
-                <Link href="#features" className="bg-white text-indigo-600 border border-indigo-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-50 transition-colors">
-                  Learn More
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Powerful Collaboration Features</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Everything you need to collaborate effectively on creative projects
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">Real-time Collaboration</h3>
-            <p className="text-gray-600">
-              See changes as your teammates draw, move objects, and add text simultaneously.
-            </p>
-          </div>
-
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">Rich Drawing Tools</h3>
-            <p className="text-gray-600">
-              Pen, shapes, text tools, and more to bring your ideas to life on the canvas.
-            </p>
-          </div>
-
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">Easy Sharing</h3>
-            <p className="text-gray-600">
-              Share your boards with a link and control who can view or edit.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="bg-indigo-600 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to start collaborating?</h2>
-          <p className="text-xl text-indigo-100 max-w-3xl mx-auto mb-10">
-            Join thousands of teams already using CollabBoard to bring their ideas to life.
-          </p>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+          Collaborate on Ideas
+          <span className="block text-blue-600">Visually</span>
+        </h1>
+        <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
+          Create, draw, and brainstorm with your team on an infinite canvas. 
+          Real-time collaboration made simple and beautiful.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {isAuthenticated ? (
-            <Link href="/dashboard" className="bg-white text-indigo-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-50 transition-colors inline-block">
+            <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition duration-200 shadow-lg hover:shadow-xl">
               Go to Dashboard
             </Link>
           ) : (
-            <Link href="/auth/signup" className="bg-white text-indigo-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-50 transition-colors inline-block">
-              Get Started Free
+            <>
+              <Link href="/auth/signup" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition duration-200 shadow-lg hover:shadow-xl">
+                Start Creating Free
+              </Link>
+              <Link href="#features" className="bg-white hover:bg-gray-50 text-gray-700 font-semibold py-4 px-8 rounded-xl border border-gray-200 transition duration-200 shadow-lg hover:shadow-xl">
+                Learn More
+              </Link>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Everything you need to collaborate</h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">Powerful tools designed for teams who think visually</p>
+        </div>
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+            <div className="w-14 h-14 bg-blue-100 rounded-xl mb-6 flex items-center justify-center">
+              <FiUsers className="text-blue-600 text-2xl" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Real-time Collaboration</h3>
+            <p className="text-gray-600 leading-relaxed">See cursors, edits, and changes from your team members instantly. No lag, no conflicts.</p>
+          </div>
+          
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+            <div className="w-14 h-14 bg-green-100 rounded-xl mb-6 flex items-center justify-center">
+              <FiDownload className="text-green-600 text-2xl" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Export Anywhere</h3>
+            <p className="text-gray-600 leading-relaxed">Export your boards as PNG, JPEG, SVG, or JSON. Perfect for presentations and documentation.</p>
+          </div>
+          
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+            <div className="w-14 h-14 bg-purple-100 rounded-xl mb-6 flex items-center justify-center">
+              <FiSave className="text-purple-600 text-2xl" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Auto-save & Snapshots</h3>
+            <p className="text-gray-600 leading-relaxed">Never lose your work. Automatic saving with version history and manual snapshots.</p>
+          </div>
+          
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+            <div className="w-14 h-14 bg-orange-100 rounded-xl mb-6 flex items-center justify-center">
+              <FiShare2 className="text-orange-600 text-2xl" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Easy Sharing</h3>
+            <p className="text-gray-600 leading-relaxed">Share boards with a link. Invite collaborators by email with editor or viewer permissions.</p>
+          </div>
+          
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+            <div className="w-14 h-14 bg-red-100 rounded-xl mb-6 flex items-center justify-center">
+              <FiLayers className="text-red-600 text-2xl" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Rich Drawing Tools</h3>
+            <p className="text-gray-600 leading-relaxed">Shapes, text, freehand drawing, and more. Everything you need to express your ideas.</p>
+          </div>
+          
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+            <div className="w-14 h-14 bg-indigo-100 rounded-xl mb-6 flex items-center justify-center">
+              <FiZap className="text-indigo-600 text-2xl" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">Lightning Fast</h3>
+            <p className="text-gray-600 leading-relaxed">Optimized for performance. Smooth drawing experience even with complex boards.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12 text-center text-white">
+          <h2 className="text-4xl font-bold mb-4">Ready to start collaborating?</h2>
+          <p className="text-xl mb-8 opacity-90">Join thousands of teams already using CollabBoard</p>
+          {isAuthenticated ? (
+            <Link href="/dashboard" className="bg-white text-blue-600 font-semibold py-4 px-8 rounded-xl hover:bg-gray-100 transition duration-200 shadow-lg">
+              Go to Dashboard
+            </Link>
+          ) : (
+            <Link href="/auth/signup" className="bg-white text-blue-600 font-semibold py-4 px-8 rounded-xl hover:bg-gray-100 transition duration-200 shadow-lg">
+              Get Started for Free
             </Link>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Footer */}
-      <footer className="bg-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-gray-600">&copy; 2025 CollabBoard. All rights reserved.</p>
-          </div>
-        </div>
+      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-gray-600">
+        <p>&copy; 2024 CollabBoard. Built for creative collaboration.</p>
       </footer>
     </div>
   );

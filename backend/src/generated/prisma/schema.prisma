@@ -29,11 +29,15 @@ model User {
 model Board {
   id            String              @id @default(uuid())
   title         String
+  description   String?
+  isPublic      Boolean             @default(false)
+  shareToken    String?             @unique
   ownerId       String
   owner         User                @relation(fields: [ownerId], references: [id])
   collaborators BoardCollaborator[]
   actions       BoardAction[]
   snapshots     BoardSnapshot[]
+  lastActivity  DateTime            @default(now())
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 }
@@ -41,30 +45,41 @@ model Board {
 model BoardCollaborator {
   id        String   @id @default(uuid())
   boardId   String
-  userId    String
-  role      String   @default("editor") // viewer, editor, admin
-  board     Board    @relation(fields: [boardId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  userId    String?
+  email     String?
+  role      String   @default("editor") // viewer, editor
+  status    String   @default("pending") // pending, accepted, rejected
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([boardId, userId])
+  @@unique([boardId, email])
 }
 
 model BoardAction {
-  id        String   @id @default(uuid())
-  boardId   String
-  userId    String
-  action    String // JSON string of the action
-  timestamp DateTime @default(now())
-  board     Board    @relation(fields: [boardId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  id         String   @id @default(uuid())
+  boardId    String
+  userId     String
+  actionType String // add, modify, delete, clear
+  objectId   String? // fabric.js object id
+  action     String // JSON string of the action
+  timestamp  DateTime @default(now())
+  board      Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([boardId, timestamp])
 }
 
 model BoardSnapshot {
   id        String   @id @default(uuid())
   boardId   String
   data      String // JSON string of the board state
+  version   Int      @default(1)
+  isAuto    Boolean  @default(true) // auto vs manual snapshot
   timestamp DateTime @default(now())
-  board     Board    @relation(fields: [boardId], references: [id])
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId, timestamp])
 }

@@ -6,13 +6,21 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/auth-context';
 import { AuthService } from '@/lib/auth-service';
+import { FiPlus, FiUsers, FiShare2, FiMoreVertical, FiEdit3, FiTrash2, FiCopy } from 'react-icons/fi';
 
 interface Board {
   id: string;
   title: string;
+  description?: string;
   ownerId: string;
+  isPublic: boolean;
+  shareToken?: string;
+  lastActivity: Date;
   createdAt: Date;
   updatedAt: Date;
+  _count?: {
+    collaborators: number;
+  };
 }
 
 export default function Dashboard() {
@@ -147,37 +155,53 @@ export default function Dashboard() {
             <p className="mt-2 text-gray-600">Create and collaborate on whiteboards with your team.</p>
           </div>
           
-          {/* Create Board Section */}
-          <div className="mb-12">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Create a new board</h3>
-              <div className="flex flex-col sm:flex-row gap-3">
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <FiPlus className="text-2xl" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Create New Board</h3>
+              <p className="text-blue-100 mb-4">Start a fresh canvas for your ideas</p>
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={newBoardTitle}
                   onChange={(e) => setNewBoardTitle(e.target.value)}
-                  placeholder="Enter board title"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Board title"
+                  className="flex-1 px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
                   onKeyPress={(e) => e.key === 'Enter' && createBoard()}
                 />
                 <button
                   onClick={createBoard}
                   disabled={isCreating || !newBoardTitle.trim()}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition disabled:opacity-50"
                 >
-                  {isCreating ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Creating...
-                    </span>
-                  ) : (
-                    'Create Board'
-                  )}
+                  {isCreating ? '...' : 'Create'}
                 </button>
               </div>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+                <FiUsers className="text-green-600 text-2xl" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Collaborators</h3>
+              <p className="text-gray-600 mb-4">Invite team members to your boards</p>
+              <div className="text-2xl font-bold text-green-600">
+                {boards.reduce((acc, board) => acc + (board._count?.collaborators || 0), 0)}
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+                <FiEdit3 className="text-purple-600 text-2xl" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Total Boards</h3>
+              <p className="text-gray-600 mb-4">Your creative workspace</p>
+              <div className="text-2xl font-bold text-purple-600">{boards.length}</div>
             </div>
           </div>
 
@@ -203,23 +227,54 @@ export default function Dashboard() {
               <p className="mt-2 text-gray-500">Create your first board to get started.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {boards.map((board) => (
                 <div 
                   key={board.id} 
-                  className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                  className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group border border-gray-100"
                   onClick={() => handleBoardClick(board.id)}
                 >
                   <div className="p-6">
-                    <div className="flex items-center justify-center h-32 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg mb-4 group-hover:opacity-90 transition-opacity">
-                      <svg className="h-12 w-12 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                        <span className="text-xs text-gray-500">Active</span>
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Handle menu click
+                        }}
+                        className="p-1 hover:bg-gray-100 rounded-lg transition"
+                      >
+                        <FiMoreVertical className="text-gray-400" />
+                      </button>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 truncate">{board.title}</h3>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Created: {new Date(board.createdAt).toLocaleDateString()}
-                    </p>
+                    
+                    <div className="flex items-center justify-center h-32 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-xl mb-4 group-hover:scale-105 transition-transform">
+                      <FiEdit3 className="text-4xl text-white opacity-80" />
+                    </div>
+                    
+                    <h3 className="text-lg font-semibold text-gray-900 truncate mb-2">{board.title}</h3>
+                    {board.description && (
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{board.description}</p>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-1">
+                          <FiUsers className="text-xs" />
+                          <span>{board._count?.collaborators || 0}</span>
+                        </div>
+                        {board.isPublic && (
+                          <div className="flex items-center space-x-1">
+                            <FiShare2 className="text-xs" />
+                            <span>Public</span>
+                          </div>
+                        )}
+                      </div>
+                      <span>{new Date(board.lastActivity).toLocaleDateString()}</span>
+                    </div>
                   </div>
                 </div>
               ))}

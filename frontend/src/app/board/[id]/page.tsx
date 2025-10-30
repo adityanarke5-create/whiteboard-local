@@ -1,23 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import EnhancedToolbar from '@/components/EnhancedToolbar';
+import Whiteboard, { WhiteboardHandle } from '@/components/WhiteboardFixed';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/auth-context';
-import Whiteboard from '@/components/Whiteboard';
-import Toolbar from '@/components/Toolbar';
-import SharingModal from '@/components/SharingModal';
-import { io } from 'socket.io-client';
-
-// Polyfill for crypto.randomUUID if not available
-if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
-  crypto.randomUUID = function() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-}
+import { AuthService } from '@/lib/auth-service';
+import EnhancedSharingModal from '@/components/EnhancedSharingModal';
 
 // Backend API base URL - using the dedicated backend server port
 const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
@@ -325,7 +315,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         
         {/* Toolbar */}
         <div className="shrink-0">
-          <Toolbar
+          <EnhancedToolbar
             activeTool={activeTool}
             onToolChange={handleToolChange}
             strokeColor={strokeColor}
@@ -337,6 +327,9 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             onZoomIn={() => whiteboardRef.current?.zoomIn()}
             onZoomOut={() => whiteboardRef.current?.zoomOut()}
             onResetZoom={() => whiteboardRef.current?.resetZoom()}
+            onShare={handleShare}
+            onSave={handleManualSave}
+            collaboratorCount={0}
           />
         </div>
         
@@ -353,15 +346,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         </main>
         
         {/* Sharing Modal */}
-        <SharingModal
+        <EnhancedSharingModal
           boardId={boardId || ''}
           isOpen={isSharingModalOpen}
           onClose={() => {
-            // console.log('[BoardPage] Closing sharing modal');
             setIsSharingModalOpen(false);
           }}
           onCollaboratorsChange={() => {
-            // Refresh board data or update collaborators list if needed
             console.log('Collaborators changed');
           }}
         />

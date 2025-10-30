@@ -4,20 +4,6 @@ import cors from 'cors';
 import { initSocketIO } from './lib/socket';
 import { CleanupService } from './services/cleanup.service';
 import boardsRouter from './routes/boards.routes';
-import { validateConfig, ConfigError } from './lib/config';
-
-// Validate environment configuration at startup
-let config;
-try {
-  config = validateConfig();
-  console.log('> Configuration validated successfully');
-} catch (error) {
-  if (error instanceof ConfigError) {
-    console.error(`[Config] ${error.message}`);
-    process.exit(1);
-  }
-  throw error;
-}
 
 const app: Application = express();
 const server = createServer(app);
@@ -48,7 +34,7 @@ app.get('/api/test', (req: Request, res: Response) => {
 // Register API routes
 app.use('/api/boards', boardsRouter);
 
-const PORT = config.port;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`> Backend ready on http://localhost:${PORT}`);
   console.log('> WebSocket server ready');

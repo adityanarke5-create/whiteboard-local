@@ -18,16 +18,8 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
   console.log('[WebSocket] Initializing Socket.IO server');
   
   io = new SocketIOServer(httpServer, {
-    path: '/api/socketio',
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"],
-      credentials: true
-    },
-    transports: ['websocket'], // Force WebSocket transport only
-    allowEIO3: true, // Allow Engine.IO v3 compatibility
-    pingInterval: 25000, // Ping interval in milliseconds
-    pingTimeout: 20000, // Ping timeout in milliseconds
+    cors: { origin: "*" },
+    transports: ['websocket']
   });
   
   console.log('[WebSocket] Socket.IO server initialized with config:', {
@@ -218,169 +210,51 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       });
     });
     
+    // Handle individual canvas actions (drawing, adding objects, etc.)
     socket.on('canvas-action', async (data) => {
       const { boardId, action, userId: cognitoUserId } = data;
-      console.log('[WebSocket] Received canvas-action:', { 
-        socketId: socket.id,
-        boardId,
-        cognitoUserId,
-        actionType: action?.type,
-        objectType: action?.object?.type,
-        objectId: action?.objectId || action?.object?.id
-      });
       
-      // Validate required fields
-      if (!boardId || !action || !cognitoUserId) {
-        console.error('[WebSocket] Invalid canvas-action data', { 
-          boardId, 
-          action, 
-          cognitoUserId,
-          socketId: socket.id
-        });
-        return;
+      if (!boardId || !action || !cognitoUserId) return;
+      
+      // Generate server-side ID for new objects to ensure consistency
+      if (action.type === 'object:added' && action.object && !action.object.id) {
+        action.object.id = require('crypto').randomUUID();
       }
       
-      // Validate action structure
-      if (!action.type) {
-        console.error('[WebSocket] Invalid action structure - missing type', { 
-          action,
-          socketId: socket.id
-        });
-        return;
-      }
+      // Broadcast to OTHER users only (exclude sender)
+      socket.to(boardId).emit('canvas-action', { action, userId: cognitoUserId });
+      console.log('Broadcasted action to others:', action.type, action.object?.id || action.objectId);
       
-      console.log('[WebSocket] Validating action structure', { 
-        actionType: action.type,
-        hasObject: !!action.object,
-        hasObjectId: !!action.objectId
-      });
-      
-      // Special handling for modify actions to ensure all properties are preserved
-      if (action.type === 'modify' && action.object) {
-        console.log('[WebSocket] Processing modify action', {
-          objectId: action.objectId,
-          properties: Object.keys(action.object)
-        });
-      }
-      
-      // Special handling for remove actions to ensure objectId is present
-      if (action.type === 'remove' && !action.objectId) {
-        console.warn('[WebSocket] Remove action missing objectId, attempting to extract from object', {
-          action
-        });
-        // Try to extract objectId from object if it exists
-        if (action.object?.id) {
-          action.objectId = action.object.id;
-          console.log('[WebSocket] Extracted objectId from object for remove action', {
-            objectId: action.objectId
+      // Store in database async
+      setImmediate(async () => {
+        try {
+          let databaseUserId = cognitoUserId;
+          const user = await databaseService.getUserByCognitoId(cognitoUserId);
+          if (user) databaseUserId = user.id;
+          
+          await databaseService.createAction({
+            boardId,
+            userId: databaseUserId,
+            actionType: action.type || 'modify',
+            objectId: action.objectId || action.object?.id,
+            action: JSON.stringify(action)
           });
+        } catch (error) {
+          console.error('Error saving action:', error);
         }
-      }
-      
-      // Log object ID information for all actions
-      console.log('[WebSocket] Action object ID information', {
-        actionType: action.type,
-        objectId: action.objectId || action.object?.id,
-        hasObjectId: !!action.objectId,
-        hasObject: !!action.object,
-        objectKeys: action.object ? Object.keys(action.object) : []
       });
+    });
+    
+    // Handle full canvas state updates (for snapshots)
+    socket.on('canvas-update', async (data) => {
+      const { boardId, canvasData, userId: cognitoUserId } = data;
       
-      // Validate that remove actions have an objectId
-      if (action.type === 'remove' && !action.objectId) {
-        console.error('[WebSocket] Remove action missing required objectId', {
-          action
-        });
-        return;
-      }
+      if (!boardId || !canvasData || !cognitoUserId) return;
       
-      // Validate that modify actions have an objectId
-      if (action.type === 'modify' && !action.objectId) {
-        console.error('[WebSocket] Modify action missing required objectId', {
-          action
-        });
-        return;
-      }
-      
-      // Map Cognito userId to database userId
-      let databaseUserId = cognitoUserId;
-      try {
-        const user = await databaseService.getUserByCognitoId(cognitoUserId);
-        if (user) {
-          databaseUserId = user.id;
-          console.log('[WebSocket] Mapped Cognito userId to database userId', {
-            cognitoUserId,
-            databaseUserId
-          });
-        } else {
-          console.warn('[WebSocket] User not found in database, using Cognito userId', {
-            cognitoUserId
-          });
-        }
-      } catch (error) {
-        console.error('[WebSocket] Error mapping Cognito userId to database userId', error);
-      }
-      
-      try {
-        // Persist the action in the database
-        console.log('[WebSocket] Persisting action to database', { 
-          boardId,
-          userId: databaseUserId,
-          actionType: action.type
-        });
-        
-        const actionRecord = await databaseService.createAction({
-          boardId,
-          userId: databaseUserId, // Use the mapped database userId
-          action: JSON.stringify(action)
-        });
-        
-        console.log('[WebSocket] Action persisted to database successfully', { 
-          actionId: actionRecord.id,
-          boardId,
-          userId: databaseUserId
-        });
-        
-        console.log('[WebSocket] Broadcasting canvas-update action', { 
-          boardId,
-          actionType: action.type,
-          objectType: action.object?.type,
-          objectId: action.objectId || action.object?.id,
-          userId: databaseUserId
-        });
-        
-        // Broadcast to all other users in the same board with optimized performance
-        socket.to(boardId).emit('canvas-update', { action, userId: databaseUserId });
-        
-        // Send confirmation back to sender with temporary ID mapping for 'add' actions
-        const response: any = { 
-          actionType: action.type, 
-          boardId, 
-          userId: databaseUserId
-        };
-        
-        // Include temporaryId and serverId mapping for 'add' actions
-        if (action.type === 'add' && action.object?.id) {
-          response.temporaryId = action.object.id;
-          // Use the object's ID as the server ID, not the action record ID
-          response.serverId = action.object.id;
-          console.log('[WebSocket] Adding ID mapping to response for add action', { 
-            temporaryId: action.object.id,
-            serverId: action.object.id
-          });
-        } else {
-          console.log('[WebSocket] No ID mapping added to response', {
-            actionType: action.type,
-            hasObjectId: !!action.object?.id,
-            objectId: action.object?.id
-          });
-        }
-        
-        console.log('[WebSocket] Sending action-processed response', response);
-        socket.emit('action-processed', response);
-      } catch (error) {
-        console.error('[WebSocket] Error persisting action to database', error);
-      }
+      // Store state and broadcast immediately
+      boardStates.set(boardId, canvasData);
+      socket.to(boardId).emit('canvas-state', canvasData);
+      console.log('Broadcasted canvas state');
     });
     
     socket.on('update-board-state', (data) => {
@@ -419,17 +293,69 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       }
     });
     
+    // Handle cursor movement for real-time collaboration
     socket.on('cursor-move', (data) => {
-      // Remove cursor-move handling and logging
-      const { boardId, userId, x, y } = data;
+      const { boardId, userId, x, y, userName, userColor } = data;
       
-      // Validate required fields
       if (!boardId || !userId || x === undefined || y === undefined) {
         return;
       }
       
-      // Broadcast cursor position to all other users in the same board
-      socket.to(boardId).emit('cursor-update', { userId, x, y });
+      socket.to(boardId).emit('cursor-update', { 
+        userId, 
+        x, 
+        y, 
+        userName: userName || userId,
+        userColor: userColor || '#3B82F6',
+        socketId: socket.id
+      });
+    });
+    
+    // Handle user selection changes
+    socket.on('selection-change', (data) => {
+      const { boardId, userId, selectedObjects } = data;
+      
+      if (!boardId || !userId) {
+        return;
+      }
+      
+      // Broadcast selection to all other users in the same board
+      socket.to(boardId).emit('selection-update', { 
+        userId, 
+        selectedObjects: selectedObjects || [],
+        socketId: socket.id
+      });
+    });
+    
+    // Handle typing indicators for text objects
+    socket.on('typing-start', (data) => {
+      const { boardId, userId, objectId } = data;
+      
+      if (!boardId || !userId || !objectId) {
+        return;
+      }
+      
+      socket.to(boardId).emit('typing-indicator', { 
+        userId, 
+        objectId, 
+        isTyping: true,
+        socketId: socket.id
+      });
+    });
+    
+    socket.on('typing-stop', (data) => {
+      const { boardId, userId, objectId } = data;
+      
+      if (!boardId || !userId || !objectId) {
+        return;
+      }
+      
+      socket.to(boardId).emit('typing-indicator', { 
+        userId, 
+        objectId, 
+        isTyping: false,
+        socketId: socket.id
+      });
     });
     
     // Log when the socket is disconnected
@@ -474,13 +400,19 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       }
     });
     
-    // Log only canvas-related events
+    // Handle ping for connectivity testing
+    socket.on('ping', (data) => {
+      console.log('[WebSocket] Received ping from client:', {
+        socketId: socket.id,
+        data
+      });
+      socket.emit('pong', { ...data, serverTimestamp: Date.now() });
+    });
+    
+    // Log important events only
     socket.onAny((eventName, ...args) => {
-      if (eventName === 'canvas-action' || eventName === 'canvas-update' || eventName === 'action-processed') {
-        console.log(`[WebSocket] Received event: ${eventName}`, { 
-          socketId: socket.id, 
-          args
-        });
+      if (['canvas-action', 'canvas-update', 'join-board', 'leave-board'].includes(eventName)) {
+        console.log(`[WebSocket] ${eventName}:`, { socketId: socket.id });
       }
     });
     

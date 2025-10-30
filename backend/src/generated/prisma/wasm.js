@@ -35,12 +35,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.17.1
- * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
+ * Prisma Client JS version: 6.18.0
+ * Query Engine version: 34b5a692b7bd79939a9a2c3ef97d816e749cda2f
  */
 Prisma.prismaVersion = {
-  client: "6.17.1",
-  engine: "272a37d34178c2894197e17273bf937f25acdeac"
+  client: "6.18.0",
+  engine: "34b5a692b7bd79939a9a2c3ef97d816e749cda2f"
 }
 
 Prisma.PrismaClientKnownRequestError = PrismaClientKnownRequestError;
@@ -104,7 +104,11 @@ exports.Prisma.UserScalarFieldEnum = {
 exports.Prisma.BoardScalarFieldEnum = {
   id: 'id',
   title: 'title',
+  description: 'description',
+  isPublic: 'isPublic',
+  shareToken: 'shareToken',
   ownerId: 'ownerId',
+  lastActivity: 'lastActivity',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -113,7 +117,9 @@ exports.Prisma.BoardCollaboratorScalarFieldEnum = {
   id: 'id',
   boardId: 'boardId',
   userId: 'userId',
+  email: 'email',
   role: 'role',
+  status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -122,6 +128,8 @@ exports.Prisma.BoardActionScalarFieldEnum = {
   id: 'id',
   boardId: 'boardId',
   userId: 'userId',
+  actionType: 'actionType',
+  objectId: 'objectId',
   action: 'action',
   timestamp: 'timestamp'
 };
@@ -130,6 +138,8 @@ exports.Prisma.BoardSnapshotScalarFieldEnum = {
   id: 'id',
   boardId: 'boardId',
   data: 'data',
+  version: 'version',
+  isAuto: 'isAuto',
   timestamp: 'timestamp'
 };
 
@@ -189,8 +199,8 @@ const config = {
     "schemaEnvPath": "../../../.env"
   },
   "relativePath": "../../../prisma",
-  "clientVersion": "6.17.1",
-  "engineVersion": "272a37d34178c2894197e17273bf937f25acdeac",
+  "clientVersion": "6.18.0",
+  "engineVersion": "34b5a692b7bd79939a9a2c3ef97d816e749cda2f",
   "datasourceNames": [
     "db"
   ],
@@ -203,13 +213,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id             String              @id @default(uuid())\n  email          String              @unique\n  name           String?\n  cognitoId      String              @unique\n  boards         Board[]\n  collaborations BoardCollaborator[]\n  createdAt      DateTime            @default(now())\n  updatedAt      DateTime            @updatedAt\n  BoardAction    BoardAction[]\n}\n\nmodel Board {\n  id            String              @id @default(uuid())\n  title         String\n  ownerId       String\n  owner         User                @relation(fields: [ownerId], references: [id])\n  collaborators BoardCollaborator[]\n  actions       BoardAction[]\n  snapshots     BoardSnapshot[]\n  createdAt     DateTime            @default(now())\n  updatedAt     DateTime            @updatedAt\n}\n\nmodel BoardCollaborator {\n  id        String   @id @default(uuid())\n  boardId   String\n  userId    String\n  role      String   @default(\"editor\") // viewer, editor, admin\n  board     Board    @relation(fields: [boardId], references: [id])\n  user      User     @relation(fields: [userId], references: [id])\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@unique([boardId, userId])\n}\n\nmodel BoardAction {\n  id        String   @id @default(uuid())\n  boardId   String\n  userId    String\n  action    String // JSON string of the action\n  timestamp DateTime @default(now())\n  board     Board    @relation(fields: [boardId], references: [id])\n  user      User     @relation(fields: [userId], references: [id])\n}\n\nmodel BoardSnapshot {\n  id        String   @id @default(uuid())\n  boardId   String\n  data      String // JSON string of the board state\n  timestamp DateTime @default(now())\n  board     Board    @relation(fields: [boardId], references: [id])\n}\n",
-  "inlineSchemaHash": "be6ac8bcdcb7bc6ef50c0c9f24c74707931cc463db4873df4f629a095998581d",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id             String              @id @default(uuid())\n  email          String              @unique\n  name           String?\n  cognitoId      String              @unique\n  boards         Board[]\n  collaborations BoardCollaborator[]\n  createdAt      DateTime            @default(now())\n  updatedAt      DateTime            @updatedAt\n  BoardAction    BoardAction[]\n}\n\nmodel Board {\n  id            String              @id @default(uuid())\n  title         String\n  description   String?\n  isPublic      Boolean             @default(false)\n  shareToken    String?             @unique\n  ownerId       String\n  owner         User                @relation(fields: [ownerId], references: [id])\n  collaborators BoardCollaborator[]\n  actions       BoardAction[]\n  snapshots     BoardSnapshot[]\n  lastActivity  DateTime            @default(now())\n  createdAt     DateTime            @default(now())\n  updatedAt     DateTime            @updatedAt\n}\n\nmodel BoardCollaborator {\n  id        String   @id @default(uuid())\n  boardId   String\n  userId    String?\n  email     String?\n  role      String   @default(\"editor\") // viewer, editor\n  status    String   @default(\"pending\") // pending, accepted, rejected\n  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)\n  user      User?    @relation(fields: [userId], references: [id])\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@unique([boardId, userId])\n  @@unique([boardId, email])\n}\n\nmodel BoardAction {\n  id         String   @id @default(uuid())\n  boardId    String\n  userId     String\n  actionType String // add, modify, delete, clear\n  objectId   String? // fabric.js object id\n  action     String // JSON string of the action\n  timestamp  DateTime @default(now())\n  board      Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)\n  user       User     @relation(fields: [userId], references: [id])\n\n  @@index([boardId, timestamp])\n}\n\nmodel BoardSnapshot {\n  id        String   @id @default(uuid())\n  boardId   String\n  data      String // JSON string of the board state\n  version   Int      @default(1)\n  isAuto    Boolean  @default(true) // auto vs manual snapshot\n  timestamp DateTime @default(now())\n  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)\n\n  @@index([boardId, timestamp])\n}\n",
+  "inlineSchemaHash": "6827c36917a68c638d665772b2784328059fe21d12e3a972ed36712bc98f2d4a",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cognitoId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boards\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToUser\"},{\"name\":\"collaborations\",\"kind\":\"object\",\"type\":\"BoardCollaborator\",\"relationName\":\"BoardCollaboratorToUser\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"BoardAction\",\"kind\":\"object\",\"type\":\"BoardAction\",\"relationName\":\"BoardActionToUser\"}],\"dbName\":null},\"Board\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ownerId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"owner\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"BoardToUser\"},{\"name\":\"collaborators\",\"kind\":\"object\",\"type\":\"BoardCollaborator\",\"relationName\":\"BoardToBoardCollaborator\"},{\"name\":\"actions\",\"kind\":\"object\",\"type\":\"BoardAction\",\"relationName\":\"BoardToBoardAction\"},{\"name\":\"snapshots\",\"kind\":\"object\",\"type\":\"BoardSnapshot\",\"relationName\":\"BoardToBoardSnapshot\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"BoardCollaborator\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boardId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"board\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToBoardCollaborator\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"BoardCollaboratorToUser\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"BoardAction\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boardId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"action\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"board\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToBoardAction\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"BoardActionToUser\"}],\"dbName\":null},\"BoardSnapshot\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boardId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"board\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToBoardSnapshot\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cognitoId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boards\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToUser\"},{\"name\":\"collaborations\",\"kind\":\"object\",\"type\":\"BoardCollaborator\",\"relationName\":\"BoardCollaboratorToUser\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"BoardAction\",\"kind\":\"object\",\"type\":\"BoardAction\",\"relationName\":\"BoardActionToUser\"}],\"dbName\":null},\"Board\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isPublic\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"shareToken\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ownerId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"owner\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"BoardToUser\"},{\"name\":\"collaborators\",\"kind\":\"object\",\"type\":\"BoardCollaborator\",\"relationName\":\"BoardToBoardCollaborator\"},{\"name\":\"actions\",\"kind\":\"object\",\"type\":\"BoardAction\",\"relationName\":\"BoardToBoardAction\"},{\"name\":\"snapshots\",\"kind\":\"object\",\"type\":\"BoardSnapshot\",\"relationName\":\"BoardToBoardSnapshot\"},{\"name\":\"lastActivity\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"BoardCollaborator\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boardId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"board\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToBoardCollaborator\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"BoardCollaboratorToUser\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"BoardAction\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boardId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"actionType\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"objectId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"action\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"board\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToBoardAction\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"BoardActionToUser\"}],\"dbName\":null},\"BoardSnapshot\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"boardId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"version\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"isAuto\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"board\",\"kind\":\"object\",\"type\":\"Board\",\"relationName\":\"BoardToBoardSnapshot\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),
